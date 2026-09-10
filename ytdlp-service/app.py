@@ -130,12 +130,12 @@ def run_extract(url: str, fmt: str = None) -> dict:
         "noplaylist": True,
         "socket_timeout": 25,
         "remote_components": ["ejs:github"],
+        "nocheckcertificate": True,
     }
     if fmt:
         ydl_opts["format"] = fmt
     if ADAPTER_ACTIVE:
         ydl_opts["proxy"] = LOCAL_ADAPTER_PROXY
-        ydl_opts["nocheckcertificate"] = True
 
     # Cookie bağlama
     cookie_path = None
@@ -401,6 +401,8 @@ def extract():
         return jsonify({"status": "error", "error": {"code": "invalid_url", "message": "Geçerli bir medya URL'si gerekli"}}), 400
 
     download_mode = (data.get("downloadMode") or "auto").strip()
+    if "soundcloud.com" in url or "on.soundcloud.com" in url:
+        download_mode = "audio"
     video_quality = (data.get("videoQuality") or data.get("vQuality") or "max").strip()
     codec = (data.get("youtubeVideoCodec") or data.get("vCodec") or "h264").strip()
     audio_format = (data.get("audioFormat") or data.get("aFormat") or "mp3").strip()
@@ -551,6 +553,28 @@ def extract():
         direct_url = info["requested_downloads"][0].get("url")
     if not direct_url:
         return jsonify({"status": "error", "error": {"code": "no_stream", "message": "İndirme linki bulunamadı"}}), 502
+
+    extractor_key = (info.get("extractor_key") or "").lower()
+    is_sound_only = (
+        "soundcloud" in extractor_key
+        or "soundcloud.com" in url
+        or info.get("vcodec") == "none"
+        or (info.get("ext") in ("mp3", "m4a", "ogg", "opus", "wav"))
+        or (".m3u8" in direct_url)
+    )
+
+    if is_sound_only:
+        out_ext = "mp3" if audio_format not in ("m4a", "opus", "ogg", "wav") else audio_format
+        remux_path = (
+            f"/youtube-remux?audio={quote(direct_url, safe='')}&mode=audio"
+            f"&format={out_ext}&bitrate={audio_bitrate}&filename={quote(f'{title}.{out_ext}', safe='')}"
+        )
+        return jsonify({
+            "status": "redirect",
+            "url": remux_path,
+            "filename": f"{title}.{out_ext}",
+            "adapter": ADAPTER_ACTIVE,
+        })
 
     ext = info.get("ext", "mp4")
     return jsonify({

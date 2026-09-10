@@ -31,6 +31,18 @@ export async function handleAnalyze(req, res) {
       }
     }
 
+    // 3. SoundCloud Analizi (Cobalt kapak resmi vermediği için doğrudan yerel ytdlp-service motoruna yönlendir)
+    if (/https?:\/\/(?:[\w-]+\.)*(?:soundcloud\.com)\//i.test(url)) {
+      try {
+        const { status, data } = await analyzeWithYtdlp(url, clientIp);
+        if (status === 200 && data && data.status === 'ok') {
+          return sendJson(res, 200, data);
+        }
+      } catch (err) {
+        console.warn('SoundCloud direct analyze error:', err);
+      }
+    }
+
     // 3. TikTok Analizi
     if (/^https?:\/\/([\w-]+\.)?(tiktok\.com)\//i.test(url)) {
       const tikData = await analyzeTikTok(url);
