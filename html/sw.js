@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wmd-cache-v1';
+const CACHE_NAME = 'wmd-cache-v2';
 const ASSETS = [
   '/',
   '/style.css',
