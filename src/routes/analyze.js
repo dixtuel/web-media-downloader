@@ -1,5 +1,5 @@
 import { readJsonBody, sendJson, getClientIp } from '../utils/http.js';
-import { isYouTubeUrl, isInstagramUrl, analyzeYouTube, resolveInstagramFallback } from '../services/ytdlp.js';
+import { isYouTubeUrl, isInstagramUrl, analyzeYouTube, analyzeWithYtdlp, resolveInstagramFallback } from '../services/ytdlp.js';
 import { analyzeTikTok } from '../services/tiktok.js';
 import { postCobalt } from '../services/cobalt.js';
 
@@ -76,7 +76,15 @@ export async function handleAnalyze(req, res) {
       }
     }
 
-    // 5. Varsayılan Fallback Format Seçenekleri
+    // 5. Evrensel YTDLP Fallback (Reddit, Twitter/X, SoundCloud, Pinterest vb.)
+    try {
+      const { status, data } = await analyzeWithYtdlp(url, clientIp);
+      if (status === 200 && data && data.status === 'ok') {
+        return sendJson(res, 200, data);
+      }
+    } catch {}
+
+    // 6. Varsayılan Fallback Format Seçenekleri
     return sendJson(res, 200, {
       status: 'ok',
       provider: 'generic',

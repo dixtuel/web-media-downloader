@@ -29,7 +29,11 @@ DENO_RELAY_URL = (os.environ.get("DENO_RELAY_URL") or "").strip()
 
 # --- Güvenlik: SSRF ve kaynak-tüketimi koruması -----------------------------
 YOUTUBE_URL_RE = re.compile(r"^https?://([\w-]+\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/", re.I)
-GOOGLEVIDEO_URL_RE = re.compile(r"^https?://([\w-]+\.)?(googlevideo\.com|youtube\.com|ytimg\.com)/", re.I)
+MEDIA_STREAM_URL_RE = re.compile(
+    r"^https?://([\w-]+\.)?(googlevideo\.com|youtube\.com|ytimg\.com|redd\.it|reddit\.com|twimg\.com|twitter\.com|x\.com|sndcdn\.com|soundcloud\.com|pinimg\.com|pinterest\.com|tiktokcdn\.com|tiktok\.com|cdninstagram\.com|fbcdn\.net)/",
+    re.I
+)
+GOOGLEVIDEO_URL_RE = MEDIA_STREAM_URL_RE
 INSTAGRAM_URL_RE = re.compile(r"^https?://(?:www\.)?instagram\.com/(?:[^/]+/)?(p|reel|tv)/([A-Za-z0-9_-]+)", re.I)
 
 # cobalt'ın kullandığı mobil API (i.instagram.com/api/v1/media/.../info/) IG
@@ -287,15 +291,33 @@ def analyze_video():
 
     data = request.get_json(silent=True) or {}
     url = (data.get("url") or "").strip()
-    if not url or not YOUTUBE_URL_RE.match(url):
-        return jsonify({"status": "error", "error": {"code": "invalid_url", "message": "Geçerli bir YouTube URL'si gerekli"}}), 400
+    if not url or not url.startswith(("http://", "https://")):
+        return jsonify({"status": "error", "error": {"code": "invalid_url", "message": "Geçerli bir medya URL'si gerekli"}}), 400
 
     try:
         raw_info = run_extract(url, fmt=None)
     except Exception as exc:
         return jsonify({"status": "error", "error": {"code": "analyze_failed", "message": str(exc)}}), 502
 
-    title = (raw_info.get("title") or "YouTube Video").strip()
+    extractor_key = (raw_info.get("extractor_key") or "").lower()
+    if "youtube" in extractor_key or "youtu" in url:
+        provider = "youtube"
+    elif "reddit" in extractor_key or "reddit" in url:
+        provider = "reddit"
+    elif "twitter" in extractor_key or "x.com" in url or "twit" in url:
+        provider = "twitter"
+    elif "soundcloud" in extractor_key or "soundcloud" in url:
+        provider = "soundcloud"
+    elif "pinterest" in extractor_key or "pinterest" in url:
+        provider = "pinterest"
+    elif "tiktok" in extractor_key or "tiktok" in url:
+        provider = "tiktok"
+    elif "instagram" in extractor_key or "instagram" in url:
+        provider = "instagram"
+    else:
+        provider = extractor_key or "generic"
+
+    title = (raw_info.get("title") or f"{provider.capitalize()} Medyası").strip()
     thumbnail = raw_info.get("thumbnail") or ""
     duration_sec = raw_info.get("duration") or 0
     uploader = raw_info.get("uploader") or raw_info.get("channel") or ""
@@ -339,7 +361,7 @@ def analyze_video():
 
     return jsonify({
         "status": "ok",
-        "provider": "youtube",
+        "provider": provider,
         "title": title,
         "thumbnail": thumbnail,
         "duration": duration_sec,
@@ -361,8 +383,8 @@ def extract():
 
     data = request.get_json(silent=True) or {}
     url = (data.get("url") or "").strip()
-    if not url or not YOUTUBE_URL_RE.match(url):
-        return jsonify({"status": "error", "error": {"code": "invalid_url", "message": "Geçerli bir YouTube URL'si gerekli"}}), 400
+    if not url or not url.startswith(("http://", "https://")):
+        return jsonify({"status": "error", "error": {"code": "invalid_url", "message": "Geçerli bir medya URL'si gerekli"}}), 400
 
     download_mode = (data.get("downloadMode") or "auto").strip()
     video_quality = (data.get("videoQuality") or data.get("vQuality") or "max").strip()
@@ -588,5 +610,52 @@ def remux():
     return Response(generate(), mimetype=mimetype, headers=headers)
 
 
+@app.route("/music", methods=["POST"])
+def music_resolve():
+    data = request.get_json(silent=True) or {}
+    query = (data.get("query") or "").strip()
+    if not query:
+        return jsonify({"status": "error", "message": "query parameter required"}), 400
+
+    target = query if YOUTUBE_URL_RE.match(query) else f"ytsearch1:{query}"
+    try:
+        raw_info = run_extract(target, fmt="bestaudio[acodec=opus]/bestaudio/best")
+        resolved = raw_info["entries"][0] if "entries" in raw_info else raw_info
+        stream_url = resolved.get("url")
+        if not stream_url and resolved.get("requested_downloads"):
+            stream_url = resolved["requested_downloads"][0].get("url")
+        if not stream_url:
+            return jsonify({"status": "error", "message": "Ses akışı linki bulunamadı"}), 502
+
+        title = (resolved.get("title") or query).strip()
+        channel = str(resolved.get("uploader") or resolved.get("channel") or "").strip()
+        thumbnail = resolved.get("thumbnail") or ""
+        duration = resolved.get("duration") or 0
+        webpage_url = resolved.get("webpage_url") or (f"https://www.youtube.com/watch?v={resolved.get('id')}" if resolved.get("id") else "")
+        artist = str(resolved.get("artist") or resolved.get("creator") or channel).strip()
+        album = str(resolved.get("album") or "").strip()
+
+        headers = resolved.get("http_headers") or {}
+        if "User-Agent" not in headers:
+            headers["User-Agent"] = _IG_USER_AGENT
+
+        return jsonify({
+            "status": "ok",
+            "title": title,
+            "artist": artist,
+            "album": album,
+            "duration": duration,
+            "thumbnail": thumbnail,
+            "channel": channel,
+            "webpage_url": webpage_url,
+            "stream_url": stream_url,
+            "http_headers": headers,
+            "user_agent": headers.get("User-Agent", _IG_USER_AGENT),
+        })
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 502
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+

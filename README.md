@@ -1,40 +1,40 @@
-# Cobalt Web UI
+# Web Media Downloader
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Live Demo](https://img.shields.io/badge/Canlı-downloader.sely.tr-green.svg?style=flat-square)](https://downloader.sely.tr)
+[![Live](https://img.shields.io/badge/Canlı-downloader.sely.tr-green.svg?style=flat-square)](https://downloader.sely.tr)
 
-[cobalt](https://github.com/imputnet/cobalt) API'si için hafif, modern ve kullanımı kolay bir web arayüzü. 
+Sosyal medya platformlarından (YouTube, TikTok, Instagram, Twitter/X, Reddit, SoundCloud vb.) video, ses veya fotoğraf albümlerini reklamsız, filigransız ve ücretsiz indirmek için hazırlanmış açık kaynaklı bir web arayüzü.
 
-Sosyal medya platformlarından (YouTube, TikTok, Instagram, Twitter/X vb.) video, ses veya fotoğraf albümü indirmek için geliştirilmiş tamamen açık kaynaklı ve ücretsiz bir projedir.
+Arka planda [cobalt](https://github.com/imputnet/cobalt) ve [yt-dlp](https://github.com/yt-dlp/yt-dlp) motorlarını birlikte kullanır. Biri takıldığında diğeri otomatik devreye girer.
 
 Canlı çalışan örnek: **[downloader.sely.tr](https://downloader.sely.tr)**
 
 ---
 
-## Neler Yapabilir?
+## Özellikler
 
-- **Hafif ve Hızlı:** Sade tasarım, hızlı yükleme, mobilde ve masaüstünde tam uyum.
-- **Çoklu Platform:** YouTube, TikTok, Instagram, Twitter/X, Reddit, SoundCloud vb.
-- **Format Seçenekleri:**
-  - Video (MP4) için kalite seçimi (1080p, 720p vb.) ve kodek seçenekleri.
-  - Sadece ses (MP3, M4A, Opus, WAV) indirme seçeneği.
-  - Sessiz video (mute) indirme.
-- **Galeri & Albüm Desteği:** TikTok ve Instagram'daki çoklu fotoğraflı içerikleri tek tek veya topluca indirebilme.
-- **İndirme Yöneticisi Desteği:** IDM, FDM gibi programlarla duraklatıp devam ettirilebilir (Range/HEAD başlıkları düzgün iletilir).
-- **Gelişmiş YouTube Desteği:** Cobalt'ın takıldığı YouTube kısıtlamaları için arkada çalışan opsiyonel yt-dlp mikroservisi.
+- **Sade ve Hızlı:** Gereksiz hiçbir şey yok, telefonda da bilgisayarda da tek tıkla çalışır.
+- **Çoklu Platform:** YouTube, TikTok, Instagram, Twitter/X, Reddit, SoundCloud, Pinterest vb.
+- **Video & Ses Formatları:**
+  - Video (MP4) için kalite seçimi (1080p, 720p vb.)
+  - Sadece ses indirme (MP3, M4A, Opus, WAV)
+  - Sessiz video indirme seçeneği
+- **Galeri & Albüm Desteği:** TikTok ve Instagram slaytlarını/fotoğraflarını tek tek veya topluca indirebilme.
+- **İndirme Yöneticisi Uyumlu:** IDM, FDM gibi programlarla duraklatılıp devam ettirilebilir (Range desteği tamdır).
+- **Çift Motorlu Yapı:** Cobalt'ın WAF/Cloudflare veya format nedeniyle tıkandığı durumlarda otomatik yt-dlp fallback mekanizması.
 
 ---
 
-## Nasıl Çalıştırılır? (Docker Compose)
+## Kendi Sunucunda Çalıştırma (Docker Compose)
 
-En pratik yol Docker Compose ile ayağa kaldırmaktır.
+En kolayı Docker Compose ile tek komutta ayağa kaldırmak:
 
-1. Örnek compose dosyasını kopyalayın:
+1. Örnek yapılandırmayı kopyalayın:
    ```bash
    cp docker-compose.example.yml docker-compose.yml
    ```
 
-2. İsteğe bağlı ortam değişkenlerini ayarlayın (reklam veya özel port istemiyorsanız varsayılanlar yeterlidir):
+2. İsteğe bağlı ortam değişkenlerini ayarlayın (özel port veya reklam kodu istemiyorsanız varsayılanlar yeterlidir):
    ```bash
    cp .env.example .env
    ```
@@ -52,29 +52,29 @@ Arayüze tarayıcınızdan **`http://localhost:8081`** adresinden erişebilirsin
 
 ```text
 .
-├── server.js               # Node.js HTTP sunucusu ve route orkestrasyonu
+├── server.js               # Node.js HTTP sunucusu ve API yönlendirmeleri
 ├── package.json            # Bağımlılıklar (undici)
 ├── src/
 │   ├── config.js           # Port ve API ortam değişkenleri
 │   ├── constants/mime.js   # MIME ve dosya uzantı tanımları
-│   ├── utils/http.js       # Gövde okuma, başlık ve JSON yardımcıları
-│   ├── services/           # Cobalt, yt-dlp, TikTok ve Egress servisleri
-│   └── routes/             # Analiz, akış/indirme ve statik route'lar
+│   ├── utils/http.js       # HTTP istek ve JSON yardımcıları
+│   ├── services/           # Cobalt, yt-dlp ve TikTok çözümleme servisleri
+│   └── routes/             # Analiz, akış ve indirme endpoint'leri
 ├── html/
-│   ├── index.html          # Ana sayfa
-│   ├── app.js              # İstemci arayüz mantığı (XSS korumalı)
-│   ├── style.css           # Tasarım stilleri
+│   ├── index.html          # Web arayüzü
+│   ├── app.js              # İstemci tarafı indirme/remux mantığı
+│   ├── style.css           # Tasarım
 │   ├── terms.html          # Kullanım Şartları
 │   └── privacy.html        # Gizlilik Politikası
-├── ytdlp-service/          # YouTube için yt-dlp mikroservisi (opsiyonel)
+├── ytdlp-service/          # yt-dlp mikroservisi (Python/FastAPI)
 ├── docker-compose.example.yml
 └── LICENSE                 # MIT
 ```
 
 ---
 
-## Lisans ve Kredi
+## Lisans ve Teşekkür
 
-Bu proje [imputnet/cobalt](https://github.com/imputnet/cobalt) ekibinden bağımsız, açık kaynak API'sini kullanan ücretsiz bir topluluk arayüzüdür.
+Bu proje bağımsız bir açık kaynak çalışmadır. Arka planda harika iş çıkaran [cobalt](https://github.com/imputnet/cobalt) ve [yt-dlp](https://github.com/yt-dlp/yt-dlp) projelerinden yararlanır.
 
-MIT Lisansı ile korunur — dilediğiniz gibi kullanabilir, değiştirebilir ve self-host edebilirsiniz.
+MIT Lisansı ile tamamen ücretsiz ve özgürdür. İstediğiniz gibi kurabilir, değiştirebilir ve kullanabilirsiniz.

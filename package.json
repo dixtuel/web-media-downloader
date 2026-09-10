@@ -1,7 +1,7 @@
 {
-  "name": "cobalt-web",
-  "version": "1.0.0",
-  "description": "Standalone web interface for cobalt and ytdlp-service",
+  "name": "web-media-downloader",
+  "version": "1.1.0",
+  "description": "Lightweight open source web interface for downloading media from YouTube, Twitter, TikTok, Reddit and more",
   "main": "server.js",
   "type": "module",
   "scripts": {

@@ -10,7 +10,7 @@ export function isInstagramUrl(url) {
   return /^https?:\/\/(?:www\.)?instagram\.com\//i.test(url);
 }
 
-export async function analyzeYouTube(url, clientIp) {
+export async function analyzeWithYtdlp(url, clientIp) {
   const ytRes = await fetch(`${YTDLP_API}/analyze`, {
     method: 'POST',
     headers: {
@@ -24,8 +24,9 @@ export async function analyzeYouTube(url, clientIp) {
   const data = await ytRes.json();
   return { status: ytRes.status, data };
 }
+export const analyzeYouTube = analyzeWithYtdlp;
 
-export async function extractYouTube(rawBody, clientIp) {
+export async function extractWithYtdlp(rawBody, clientIp) {
   const ytRes = await fetch(`${YTDLP_API}/extract`, {
     method: 'POST',
     headers: {
@@ -39,6 +40,7 @@ export async function extractYouTube(rawBody, clientIp) {
   const data = await ytRes.json();
   return { status: ytRes.status, data };
 }
+export const extractYouTube = extractWithYtdlp;
 
 export async function resolveInstagramFallback(url, clientIp) {
   try {

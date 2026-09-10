@@ -473,8 +473,11 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       showToast('İndirme hazırlanıyor...', '');
 
-      // YouTube
-      if (currentMedia.provider === 'youtube' || /(?:youtube\.com|youtu\.be|music\.youtube\.com)/i.test(currentMedia.rawUrl)) {
+      // YouTube, Reddit, Twitter, SoundCloud, Pinterest veya yt-dlp üzerinden çözülen platformlar
+      const isYtdlpSupported = ['youtube', 'reddit', 'twitter', 'soundcloud', 'pinterest'].includes(currentMedia.provider) ||
+        /(?:youtube\.com|youtu\.be|music\.youtube\.com)/i.test(currentMedia.rawUrl);
+
+      if (isYtdlpSupported) {
         const payload = {
           url: currentMedia.rawUrl,
           downloadMode: options.mode === 'audio' ? 'audio' : (options.mode === 'mute' ? 'mute' : 'auto'),
@@ -495,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = await res.json();
         if (!res.ok || data.status === 'error') {
-          throw new Error(data.error?.message || 'YouTube indirme linki oluşturulamadı.');
+          throw new Error(data.error?.message || 'İndirme linki oluşturulamadı.');
         }
 
         triggerDownload(data.url, data.filename);
