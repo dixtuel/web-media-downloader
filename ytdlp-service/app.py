@@ -28,9 +28,9 @@ REDDIT_CLIENT_SECRET = (os.environ.get("REDDIT_CLIENT_SECRET") or "").strip()
 DENO_RELAY_URL = (os.environ.get("DENO_RELAY_URL") or "").strip()
 
 # --- Güvenlik: SSRF ve kaynak-tüketimi koruması -----------------------------
-YOUTUBE_URL_RE = re.compile(r"^https?://([\w-]+\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/", re.I)
+YOUTUBE_URL_RE = re.compile(r"^https?://(?:[a-zA-Z0-9_-]+\.)*(youtube\.com|youtu\.be|music\.youtube\.com)/", re.I)
 MEDIA_STREAM_URL_RE = re.compile(
-    r"^https?://([\w-]+\.)?(googlevideo\.com|youtube\.com|ytimg\.com|redd\.it|reddit\.com|twimg\.com|twitter\.com|x\.com|sndcdn\.com|soundcloud\.com|soundcloud\.cloud|pinimg\.com|pinterest\.com|tiktokcdn\.com|tiktok\.com|ibytedtos\.com|byteoversea\.com|cdninstagram\.com|fbcdn\.net)/",
+    r"^https?://(?:[a-zA-Z0-9_-]+\.)*(googlevideo\.com|youtube\.com|ytimg\.com|redd\.it|reddit\.com|twimg\.com|twitter\.com|x\.com|sndcdn\.com|soundcloud\.com|soundcloud\.cloud|pinimg\.com|pinterest\.com|tiktokcdn\.com|tiktok\.com|ibytedtos\.com|byteoversea\.com|cdninstagram\.com|fbcdn\.net)/",
     re.I
 )
 GOOGLEVIDEO_URL_RE = MEDIA_STREAM_URL_RE
@@ -513,6 +513,7 @@ def remux():
         if fmt_param == "mp3":
             args = [
                 "ffmpeg", "-loglevel", "error",
+                "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
                 "-reconnect", "1", "-reconnect_at_eof", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
                 "-user_agent", UA,
                 "-i", audio_url,
@@ -523,6 +524,7 @@ def remux():
         elif fmt_param in ("opus", "ogg"):
             args = [
                 "ffmpeg", "-loglevel", "error",
+                "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
                 "-reconnect", "1", "-reconnect_at_eof", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
                 "-user_agent", UA,
                 "-i", audio_url,
@@ -533,6 +535,7 @@ def remux():
         elif fmt_param == "wav":
             args = [
                 "ffmpeg", "-loglevel", "error",
+                "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
                 "-reconnect", "1", "-reconnect_at_eof", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
                 "-user_agent", UA,
                 "-i", audio_url,
@@ -543,6 +546,7 @@ def remux():
         else:  # m4a, aac, best
             args = [
                 "ffmpeg", "-loglevel", "error",
+                "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
                 "-reconnect", "1", "-reconnect_at_eof", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
                 "-user_agent", UA,
                 "-i", audio_url,
