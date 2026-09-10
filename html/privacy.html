@@ -41,111 +41,88 @@
 
     <main>
       <section class="legal-card">
-        <p class="updated">Son güncelleme: 23 Ağustos 2026</p>
+        <p class="updated">Son güncelleme: 10 Eylül 2026</p>
 
-        <h2>1. Veri sorumlusu ve kapsam</h2>
+        <h2>1. Veri sorumlusu ve aydınlatma yükümlülüğü (KVKK m.10 & GDPR)</h2>
         <p>
-          Bu Gizlilik Politikası / Aydınlatma Metni, 6698 sayılı Kişisel Verilerin Korunması
-          Kanunu ("KVKK") m.10 kapsamında, Downloader medya indirme aracını ("Hizmet")
-          kullanırken hangi verilerin, hangi amaçla ve ne kadar süreyle işlendiğini açıklar.
-          Hizmetin veri sorumlusu, Hizmeti işleten <strong>dixtuel</strong>'dir; sorularınız
-          için <a href="mailto:your-email@example.com">your-email@example.com</a> adresinden bize ulaşabilirsiniz.
+          Bu Aydınlatma Metni ve Gizlilik Politikası; 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") m.10 ve
+          Avrupa Birliği Genel Veri Koruma Tüzüğü ("GDPR") uyarınca, Downloader medya aktarım aracını ("Hizmet") kullanan
+          ziyaretçilerin kişisel verilerinin işlenme esaslarını açıklamak üzere hazırlanmıştır.
+          Hizmetin veri sorumlusu <strong>dixtuel</strong> olup, veri koruma ve gizlilik bildirimleri için
+          <a href="mailto:contact@dixtuel.tr">contact@dixtuel.tr</a> adresi üzerinden iletişim kurulabilir.
         </p>
 
-        <h2>2. Sıfır veri tutma ilkesi</h2>
+        <h2>2. Sıfır veri depolama ve kayıt tutmama ilkesi (No-Logs Policy)</h2>
         <p>
-          Hizmet, tasarım gereği <strong>hiçbir kullanıcı hesabı, kişisel profil veya kalıcı
-          kayıt oluşturmaz</strong>. Sunucu tarafımızda istek bazlı erişim günlüğü (IP adresi,
-          tarayıcı bilgisi vb. içeren log dosyası) tutulmaz; girdiğiniz bağlantı yalnızca
-          talebiniz işlenirken bellekte tutulur ve işlem bitince kalıcı olarak saklanmaz.
-          Medya dosyaları sunucu diskine hiç yazılmaz; kaynak platformdan doğrudan
-          tarayıcınıza/cihazınıza aktarılır (stream edilir).
+          Hizmet, gizlilik odaklı mimarisi (Privacy by Design) gereğince <strong>hiçbir kullanıcı hesabı, üyelik sistemi,
+          profil kaydı veya kalıcı veri tabanı kaydı tutmaz</strong>:
+        </p>
+        <ul>
+          <li><strong>Sunucu Günlüğü Tutulmaz:</strong> Sunucu tarafında kullanıcı IP adresleri, indirme geçmişi, zaman damgaları veya istek içeriklerini içeren erişim logları (access logs) kalıcı olarak saklanmaz.</li>
+          <li><strong>Diske Yazılmayan Akış (Stream-Only):</strong> İndirilen medya dosyaları sunucu sabit disklerine asla kaydedilmez. Kaynak CDN ile istemci tarayıcısı arasındaki veri iletimi anlık akış (streaming/in-memory pipe) yöntemiyle gerçekleştirilir.</li>
+          <li><strong>İşlem Sonrası İmha:</strong> Analiz amacıyla girilen URL bağlantıları yalnızca işlem yürütüldüğü süre boyunca geçici bellekte (RAM) tutulur ve yanıt üretildikten derhal sonra bellekten silinir.</li>
+        </ul>
+
+        <h2>3. Dağıtık ağ mimarisi, IP maskeleme ve tünel aktarımı (Edge Relays)</h2>
+        <p>
+          Hizmet; istemci gizliliğini korumak, sunucu kaynaklarını optimize etmek ve DDoS/güvenlik tehditlerine karşı korunmak amacıyla
+          aşağıdaki bağımsız küresel altyapı katmanlarından faydalanmaktadır:
+        </p>
+        <ul>
+          <li><strong>Cloudflare (CDN, WAF ve SSL):</strong> Hizmetin ön yüzü Cloudflare küresel kenar ağı üzerinde çalışır. Cloudflare, meşru menfaat (KVKK m.5/2-f) kapsamında kötü niyetli botları, siber saldırıları ve kötüye kullanımı engellemek için IP adreslerini güvenlik duvarı düzeyinde anlık olarak denetleyebilir. Bu süreç <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Gizlilik Politikası</a>'na tabidir.</li>
+          <li><strong>Deno Deploy & AWS Lambda (Egress Röleleri):</strong> Kaynak platformların (YouTube, Reddit, Instagram, TikTok vb.) istemci IP adresini doğrudan izlemesini engellemek ve bant genişliğini dağıtmak amacıyla, belirli medya sorguları Deno Land Inc. (ABD/Avrupa) ve Amazon Web Services (AWS) sunucusuz tünel röleleri üzerinden yönlendirilir. Bu rölelerde hiçbir kullanıcı verisi depolanmaz, yalnızca şifrelenmiş geçici proxy iletimi yapılır.</li>
+        </ul>
+
+        <h2>4. Aktarılan veriler ve üçüncü taraf hizmet sağlayıcılar</h2>
+        <p>
+          Hizmet üzerinden girdiğiniz medya bağlantısı, format tespiti ve CDN adres çözümlemesi amacıyla aşağıdaki açık kaynaklı ve üçüncü taraf motorlar tarafından işlenir:
+        </p>
+        <ul>
+          <li><strong>Cobalt & yt-dlp Motorları:</strong> Yerel sunucumuzda çalışan açık kaynaklı dönüştürme ve akış ayıklama motorlarıdır. Dışarıya hiçbir kişisel veri sızdırmaz.</li>
+          <li><strong>Harici Çözümleme Servisleri:</strong> Bazı TikTok veya Reddit içeriklerinde doğrudan erişimin kısıtlı olması halinde, yalnızca sorgulanan medya linki anonim biçimde TikWM veya açık aynalar üzerinden çözümlenebilir; bu servislere kullanıcı kimliği veya IP adresi iletilmez.</li>
+          <li><strong>Google AdSense:</strong> Hizmetin ücretsiz idamesini sağlamak üzere sayfada Google reklamları yer alır. Google, reklam sunumu ve sahtecilik önleme amacıyla çerezler işleyebilir (bkz. madde 6).</li>
+        </ul>
+
+        <h2>5. Kişisel veri işleme amaçları ve hukuki sebepler</h2>
+        <p>
+          Hizmet kapsamında gerçekleştirilen sınırlı teknik veri aktarımının hukuki sebepleri:
+        </p>
+        <ul>
+          <li><strong>Sözleşmenin İfası (KVKK m.5/2-c):</strong> Kullanıcının talep ettiği medya dönüştürme ve indirme aktarımının teknik olarak gerçekleştirilmesi.</li>
+          <li><strong>Meşru Menfaat (KVKK m.5/2-f):</strong> Hizmetin siber saldırılara, aşırı yüklenmeye ve kötüye kullanıma karşı korunması, sistem kararlılığının temini.</li>
+          <li><strong>Açık Rıza (KVKK m.5/1):</strong> Google AdSense aracılığıyla sunulan kişiselleştirilmiş reklam çerezleri, kullanıcının tarayıcı tercihleri ve çerez onayına dayanır.</li>
+        </ul>
+
+        <h2>6. Çerezler ve reklam yönetimi (Cookies & AdSense)</h2>
+        <p>
+          Hizmetin kendisi kullanıcıları profillemek amacıyla birinci taraf izleme çerezi kullanmaz. Yalnızca oturum tercihlerini (ör. ses/video sekme seçimi) yerel depolama (LocalStorage) üzerinde tutar.
+          Sayfada yer alan <strong>Google AdSense</strong> ise ilgi alanlarına dayalı reklamlar sunabilmek adına üçüncü taraf çerezler yerleştirebilir.
+          Kullanıcılar diledikleri zaman kişiselleştirilmiş reklamları <a href="https://adssettings.google.com/" target="_blank" rel="noopener">Google Reklam Ayarları</a>
+          veya <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">AboutAds Tercihleri</a> üzerinden kapatabilir veya tarayıcı ayarlarından çerezleri tamamen engelleyebilir.
         </p>
 
-        <h2>3. IP adresi işlenmesi ve anonimleştirme</h2>
+        <h2>7. KVKK Madde 11 ve GDPR kapsamındaki haklarınız</h2>
         <p>
-          Hizmet uygulama kodu, isteğinizi işlerken IP adresinizi günlüğe yazmaz, veritabanına
-          kaydetmez ve üçüncü taraf indirme kaynaklarına iletmez — istekler yalnızca akışın
-          çalışması için gerekli asgari başlıklarla (ör. <code>Range</code>) yönlendirilir.
-          Hizmet, Cloudflare'in içerik dağıtım ağı (CDN) ve DDoS/güvenlik koruması üzerinden
-          sunulur; bağlantı düzeyinde IP adresiniz, meşru menfaat (KVKK m.5/2-f) kapsamında
-          yalnızca kötüye kullanım ve saldırı önleme amacıyla Cloudflare tarafından kısa süreli
-          işlenebilir. Bu işleme, Cloudflare'in kendi
-          <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">gizlilik politikasına</a>
-          tabidir ve Hizmet tarafından kontrol edilmez.
+          6698 sayılı KVKK'nın 11. maddesi ve GDPR Chapter 3 uyarınca tüm kullanıcılar; kişisel verilerinin işlenip işlenmediğini öğrenme,
+          işlenmişse buna ilişkin bilgi talep etme, işlenme amacını ve amaca uygun kullanılıp kullanılmadığını öğrenme, aktarılan üçüncü kişileri bilme,
+          verilerin silinmesini veya yok edilmesini talep etme haklarına sahiptir.
+        </p>
+        <p>
+          Hizmetimiz sıfır veri tutma (no-logs) ilkesiyle çalıştığından ve sunucularımızda kimliğinizi eşleştirecek hiçbir kalıcı kayıt saklanmadığından,
+          bu haklara ilişkin talepler teknik olarak "işlenen herhangi bir kişisel veri bulunmadığı" şeklinde sonuçlanmaktadır.
+          Yine de her türlü soru ve başvuru için <a href="mailto:contact@dixtuel.tr">contact@dixtuel.tr</a> adresi üzerinden bize ulaşabilirsiniz.
         </p>
 
-        <h2>4. Aktarılan veriler ve alıcı kategorileri</h2>
+        <h2>8. Değişiklikler ve yürürlük</h2>
         <p>
-          İndirme kutusuna yapıştırdığınız URL, ilgili medyayı çözümlemek amacıyla Hizmetin
-          altyapısında kullandığı açık kaynak <strong>cobalt</strong> çözümleme motoruna ve
-          (yalnızca bazı TikTok
-          bağlantıları için) üçüncü taraf bir çözümleme servisine
-          (<code>tikwm.com</code>) iletilir; bu servise yalnızca ilettiğiniz bağlantı gider,
-          başka bir kişisel veri paylaşılmaz. Ayrıca Hizmetin sürdürülebilirliği için
-          sayfada reklam gösteren <strong>Google AdSense</strong>, tarayıcınız üzerinden
-          reklam kişiselleştirme amacıyla kendi çerezlerini işler (bkz. madde 6). Bu
-          servisler kendi gizlilik politikalarına tabidir ve Hizmetle resmi bir ortaklığı
-          yoktur; Google, verileri kendi altyapısı gereği yurt dışına aktarabilir.
-        </p>
-
-        <h2>5. İşleme amaçları ve hukuki sebep</h2>
-        <p>
-          Talep ettiğiniz medya bağlantısının çözümlenmesi ve size iletilmesi hizmetinin
-          ifası (KVKK m.5/2-c) ile Hizmetin güvenliğinin ve kötüye kullanıma karşı
-          korunmasının sağlanması (KVKK m.5/2-f, meşru menfaat) Hizmetin kendi işleme
-          amaçlarıdır; bu kapsamda reklam, profilleme veya pazarlama amacıyla veri
-          işlenmez. Google AdSense'in reklam kişiselleştirmesi ise Google'ın kendi hukuki
-          sebebine (genel olarak açık rıza/çerez onayı) dayanır ve Hizmetin kontrolü
-          dışındadır; tarayıcı ayarlarınızdan veya
-          <a href="https://adssettings.google.com/" target="_blank" rel="noopener">Google Reklam Ayarları</a>'ndan
-          yönetilebilir.
-        </p>
-
-        <h2>6. Çerezler ve reklamlar</h2>
-        <p>
-          Hizmetin ücretsiz kalabilmesi ve sürdürülebilir olması için sayfada
-          <strong>Google AdSense</strong> aracılığıyla reklam gösterilir. Google ve reklam
-          ortakları, size ilgi alanlarınıza göre reklam gösterebilmek için çerez ve benzeri
-          tanımlayıcılar kullanabilir; bu çerezler Hizmet tarafından değil, Google tarafından
-          yönetilir ve Google'ın kendi
-          <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">reklam politikalarına</a>
-          tabidir. Kişiselleştirilmiş reklamları
-          <a href="https://adssettings.google.com/" target="_blank" rel="noopener">Google Reklam Ayarları</a>
-          üzerinden yönetebilir veya devre dışı bırakabilirsiniz. Hizmetin kendisi, reklam
-          gösterimi dışında herhangi bir izleme/analitik çerezi kullanmaz.
-        </p>
-
-        <h2>7. Saklama süresi</h2>
-        <p>
-          Hizmet tarafımızda kişisel veri kalıcı olarak saklanmaz; işlem anlık olarak
-          gerçekleştirilir ve tamamlanmasıyla birlikte bellekten silinir. Cloudflare'in
-          güvenlik amaçlı bağlantı günlükleri, Cloudflare'in kendi saklama süreleri
-          kapsamındadır.
-        </p>
-
-        <h2>8. KVKK m.11 kapsamındaki haklarınız</h2>
-        <p>
-          KVKK m.11 uyarınca; kişisel verinizin işlenip işlenmediğini öğrenme, işlenmişse
-          buna ilişkin bilgi talep etme, işlenme amacını ve amacına uygun kullanılıp
-          kullanılmadığını öğrenme, yurt içinde/yurt dışında aktarıldığı üçüncü kişileri
-          bilme, eksik/yanlış işlenmişse düzeltilmesini isteme, KVKK'da öngörülen şartlarda
-          silinmesini/yok edilmesini isteme ve bu işlemlerin aktarıldığı üçüncü kişilere
-          bildirilmesini isteme haklarına sahipsiniz. Hizmet herhangi bir kişisel veri
-          kalıcı olarak saklamadığından bu haklara ilişkin talepler genellikle konusuz kalır;
-          yine de sorularınız için <a href="mailto:your-email@example.com">your-email@example.com</a> adresinden bize ulaşabilirsiniz.
-        </p>
-
-        <h2>9. Değişiklikler</h2>
-        <p>
-          Bu politika, Hizmet geliştikçe güncellenebilir. Önemli değişiklikler bu sayfada ve
-          "son güncelleme" tarihinde yansıtılır.
+          Bu Gizlilik Politikası, yasal düzenlemeler ve altyapı geliştirmelerine paralel olarak güncellenebilir.
+          Güncellenen metin bu sayfada yayımlandığı tarihten itibaren geçerlilik kazanır.
         </p>
       </section>
     </main>
 
     <footer class="app-footer">
-      <span class="credit">Açık kaynak medya indirme aracı</span>
+      <span class="credit">made by <a class="maker" href="https://dixtuel.tr/" target="_blank" rel="noopener">dixtuel</a></span>
       <nav class="footer-links">
         <a href="/privacy.html">Gizlilik Politikası</a>
         <span class="sep">·</span>

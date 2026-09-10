@@ -73,10 +73,21 @@ const server = http.createServer(async (req, res) => {
     return handleYouTubeRemux(req, res, parsedUrl);
   }
 
-  // 9. Cobalt API POST proxy
+  // 9. Cobalt API POST proxy (Reddit fallback desteği)
   if (req.method === 'POST' && pathname === '/') {
     try {
       const rawBody = await readBody(req);
+      const clientIp = getClientIp(req);
+
+      try {
+        const parsed = JSON.parse(rawBody.toString('utf8') || '{}');
+        const targetUrl = (parsed.url || '').trim();
+        if (targetUrl && /https?:\/\/(?:[\w-]+\.)*(?:reddit\.com|redd\.it)\//i.test(targetUrl)) {
+          const { status, data } = await extractYouTube(rawBody, clientIp);
+          return sendJson(res, status, data);
+        }
+      } catch {}
+
       const { status, data } = await postCobalt(rawBody);
       return sendJson(res, status, data);
     } catch (err) {

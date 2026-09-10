@@ -19,7 +19,19 @@ export async function handleAnalyze(req, res) {
       return sendJson(res, status, data);
     }
 
-    // 2. TikTok Analizi
+    // 2. Reddit Analizi (Cobalt 403 verdiği için doğrudan yerel ytdlp-service / resolver'a yönlendir)
+    if (/https?:\/\/(?:[\w-]+\.)*(?:reddit\.com|redd\.it)\//i.test(url)) {
+      try {
+        const { status, data } = await analyzeWithYtdlp(url, clientIp);
+        if (status === 200 && data && data.status === 'ok') {
+          return sendJson(res, 200, data);
+        }
+      } catch (err) {
+        console.warn('Reddit direct analyze error:', err);
+      }
+    }
+
+    // 3. TikTok Analizi
     if (/^https?:\/\/([\w-]+\.)?(tiktok\.com)\//i.test(url)) {
       const tikData = await analyzeTikTok(url);
       if (tikData) {
@@ -27,7 +39,7 @@ export async function handleAnalyze(req, res) {
       }
     }
 
-    // 3. Generic / Cobalt Analizi (Instagram, Twitter, Reddit, SoundCloud vb.)
+    // 4. Generic / Cobalt Analizi (Instagram, Twitter, Pinterest, SoundCloud vb.)
     let cData = null;
     try {
       const cobResult = await postCobalt({ url, downloadMode: 'auto', videoQuality: 'max' });
@@ -44,7 +56,7 @@ export async function handleAnalyze(req, res) {
         photos: cData.picker.map((item, idx) => ({
           url: item.url,
           thumb: item.thumb || item.url,
-          filename: `media_${idx + 1}.${item.type === 'video' ? 'mp4' : 'jpg'}`,
+          filename: `media_${idx + 1}.${item.type === 'video' ? 'mp4' : (item.type === 'gif' ? 'gif' : 'jpg')}`,
           type: item.type || 'photo'
         })),
         qualities: [],
@@ -53,16 +65,36 @@ export async function handleAnalyze(req, res) {
     }
 
     if (cData && (cData.status === 'redirect' || cData.status === 'tunnel')) {
+      const filename = (cData.filename || '').toLowerCase();
+      const rawUrl = (cData.url || '').toLowerCase();
+      const isImg = /\.(jpg|jpeg|png|webp)($|\?)/i.test(filename) || /\.(jpg|jpeg|png|webp)($|\?)/i.test(rawUrl) || /twimg\.com\/media\//i.test(rawUrl) || (/pinimg\.com\//i.test(rawUrl) && !/\.mp4/i.test(rawUrl));
+      const isGif = /\.gif($|\?)/i.test(filename) || /\.gif($|\?)/i.test(rawUrl);
+      const isAudio = /\.(mp3|m4a|ogg|opus|wav)($|\?)/i.test(filename) || /\.(mp3|m4a|ogg|opus|wav)($|\?)/i.test(rawUrl);
+
+      let qualityLabel = 'Orijinal En Yüksek Kalite (MP4)';
+      let isPhoto = false;
+      if (isImg) {
+        const ext = (filename.split('.').pop() || 'JPG').toUpperCase();
+        qualityLabel = `Orijinal Görsel (${ext})`;
+        isPhoto = true;
+      } else if (isGif) {
+        qualityLabel = 'Hareketli Görsel (GIF)';
+      } else if (isAudio) {
+        qualityLabel = 'Orijinal Ses Dosyası (MP3)';
+      }
+
       return sendJson(res, 200, {
         status: 'ok',
         provider: 'generic',
         title: cData.filename || 'Medya Dosyası',
-        thumbnail: '',
+        thumbnail: isImg ? cData.url : '',
         direct_url: cData.url,
+        is_photo: isPhoto,
+        is_gif: isGif,
         qualities: [
-          { id: 'max', label: 'Orijinal En Yüksek Kalite (MP4)', is_default: true, direct_url: cData.url }
+          { id: 'max', label: qualityLabel, is_default: true, direct_url: cData.url }
         ],
-        audio_bitrates: [
+        audio_bitrates: (isImg || isGif) ? [] : [
           { id: '320', label: 'En İyi Ses (MP3)', is_default: true }
         ]
       });

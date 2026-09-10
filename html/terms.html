@@ -43,98 +43,102 @@
       <section class="legal-card">
         <p class="updated">Son güncelleme: 10 Eylül 2026</p>
 
-        <h2>1. Hizmetin tanımı ve sunucusuz iletim ilkesi (No-Hosting)</h2>
+        <h2>1. Hizmetin tanımı ve sunucusuz iletim ilkesi (No-Hosting & Mere Conduit)</h2>
         <p>
-          Downloader ("Hizmet"), kullanıcıların herkese açık paylaşılan medya bağlantılarını
-          kendi cihazlarına indirmesini kolaylaştıran bir aktarım aracıdır. Hizmet ücretsiz olarak sunulur.
+          Downloader ("Hizmet"), kullanıcıların herkese açık olarak paylaşılan multimedya bağlantılarını
+          (video, ses, görsel, albüm) kendi cihazlarına aktarmasını kolaylaştıran teknik bir iletim ve dönüştürme aracıdır.
+          Hizmet, <strong>dixtuel</strong> tarafından işletilmektedir ve kâr amacı gütmeksizin ücretsiz sunulmaktadır.
         </p>
         <p>
-          <strong>Önemli — Barındırmama İlkesi:</strong> Hizmet, sunucularında hiçbir video, ses,
-          görsel veya telif hakkına konu medya dosyasını saklamaz, depolamaz veya arşivlemez.
-          Sunucularımız yalnızca kullanıcının tarayıcısı ile ilgili üçüncü taraf kaynak platform
-          (YouTube, TikTok, Instagram vb.) arasında anlık bir köprü ve aktarım kanalı (stateless proxy/conduit)
-          görevi görür. İndirilen tüm veriler doğrudan kaynak sunuculardan kullanıcının cihazına akar.
-        </p>
-
-        <h2>2. Bağımsızlık beyanı (No Affiliation)</h2>
-        <p>
-          Hizmet; YouTube, Google, TikTok, ByteDance, Instagram, Meta, Twitter / X, Reddit,
-          SoundCloud, Pinterest veya adı geçen diğer platformlarla hiçbir resmi bağa, ortaklığa,
-          yetkilendirmeye veya sponsorluğa sahip değildir. Adı geçen tüm platform adları, logoları ve
-          ticari markalar ilgili hak sahiplerinin mülkiyetindedir; burada yalnızca teknik uyumluluk ve
-          tanımlama amacıyla yer almaktadır.
+          <strong>Önemli — Barındırmama (No-Hosting) İlkesi:</strong> Hizmet, sunucularında hiçbir video, ses kaydı,
+          fotoğraf veya telif hakkına konu dijital varlığı saklamaz, veritabanında depolamaz, kalıcı olarak arşivlemez veya üçüncü kişilerin erişimine sunmaz.
+          Sunucularımız ve kullanılan dağıtık kenar (edge/relay) altyapımız, 5651 sayılı Kanun ve uluslararası kabul görmüş
+          "Basit İletim / Aracı Hizmet Sağlayıcı" (Mere Conduit) doktrini uyarınca yalnızca kullanıcının istemcisi ile kaynak platform
+          (YouTube, Instagram, TikTok, Reddit, Pinterest, X/Twitter, SoundCloud vb.) arasında anlık, geçici ve bellekte (in-memory) gerçekleşen
+          bir veri köprüsü işlevi görür. Dönüştürme veya remux işlemleri diske yazılmaksızın doğrudan HTTP akışı olarak cihazınıza iletilir.
         </p>
 
-        <h2>3. Kabul</h2>
+        <h2>2. Bağımsızlık ve ticari marka beyanı (No Affiliation & Trademarks)</h2>
         <p>
-          Hizmeti kullanarak bu Kullanım Şartlarını kabul etmiş sayılırsınız. Şartları kabul
-          etmiyorsanız Hizmeti kullanmayınız.
+          Hizmet; YouTube, Google LLC, Meta Platforms Inc. (Instagram, Facebook), ByteDance Ltd. (TikTok),
+          X Corp. (Twitter), Reddit Inc., SoundCloud Global Ltd. & Co. KG, Pinterest Inc. veya adı geçen diğer platformlarla
+          hiçbir resmi, idari, ticari ortaklığa, lisans anlaşmasına, yetkilendirmeye veya sponsorluğa sahip değildir.
+          Hizmet üzerinde bahsi geçen tüm ticari markalar, logolar, ürün ve servis isimleri yalnızca teknik uyumluluğu,
+          kaynak ayrımını ve kullanıcı bilgilendirmesini sağlamak amacıyla (nominative fair use) anılmaktadır ve ilgili hak sahiplerinin mülkiyetindedir.
         </p>
 
-        <h2>4. Kullanıcı sorumluluğu ve kişisel kullanım</h2>
+        <h2>3. Kabul ve şartların bağlayıcılığı</h2>
+        <p>
+          Hizmeti kullanarak bu Kullanım Şartlarını ve ayrılmaz parçası olan <a href="/privacy.html">Gizlilik Politikası</a>'nı
+          kabul etmiş sayılırsınız. Şartların herhangi bir maddesini kabul etmiyorsanız lütfen Hizmeti kullanmayınız.
+        </p>
+
+        <h2>4. Kullanıcı yükümlülükleri ve adil kullanım (Fair Use)</h2>
         <ul>
-          <li>Yalnızca indirme, kullanma veya kişisel arşivleme hakkına sahip olduğunuz içerikleri
-            indirmekten siz sorumlusunuz. Hizmet ticari amaçlı toplu indirme için kullanılamaz.</li>
-          <li>İçeriği aldığınız platformun (TikTok, YouTube, Instagram, X, Reddit, SoundCloud, Pinterest vb.) kendi kullanım
-            şartlarına uymak sizin sorumluluğunuzdadır.</li>
-          <li>Telif hakkıyla korunan veya lisanslı içerikleri hak sahibinin izni olmaksızın çoğaltmak, dağıtmak veya ticari kazanç amacıyla
-            kullanmak yasaktır. Hizmet, kullanıcının eylemlerinden sorumlu tutulamaz.</li>
-          <li>Hizmeti otomatize botlarla toplu indirme, altyapıya aşırı yük bindirme veya başka kullanıcılara
-            zarar verecek şekilde kötüye kullanmak yasaktır.</li>
+          <li><strong>Yasal Yetki ve Mülkiyet:</strong> İndirme işlemine konu ettiğiniz medyanın telif hakkına sahip olduğunuzu,
+            içeriğin Creative Commons / açık lisans altında paylaşıldığını veya geçerli telif hukuku (FSEK m.38 kişisel kullanım istisnası,
+            Fair Use vb.) kapsamında yalnızca şahsi, gayriticari ve yedekleme amacıyla indirdiğinizi taahhüt edersiniz.</li>
+          <li><strong>Platform Kurallarına Uyum:</strong> Verinin temin edildiği kaynak platformun (YouTube, Reddit, TikTok, X, Pinterest vb.)
+            kendi hizmet koşullarına ve API/erişim politikalarına riayet etmek münhasıran kullanıcının sorumluluğundadır.</li>
+          <li><strong>Kötüye Kullanım Yasağı:</strong> Hizmeti otomasyon araçlarıyla (botlar, crawler'lar, scraper'lar) toplu/kitlesel indirme
+            yaparak altyapıyı kasıtlı olarak yavaşlatacak, hizmet reddi (DoS/DDoS) oluşturacak veya başkalarının erişimini engelleyecek şekilde kullanmak yasaktır.</li>
+          <li><strong>Tazminat ve Sorumluluk:</strong> Kullanıcının telif hakkı ihlalleri veya hukuka aykırı eylemleri neticesinde üçüncü taraflarca
+            ileri sürülebilecek her türlü hukuki, cezai ve idari iddia ve taleplerden doğrudan ve münhasıran kullanıcı sorumludur.</li>
         </ul>
 
-        <h2>5. Telif hakkı bildirimleri (DMCA / Takedown)</h2>
+        <h2>5. Telif hakkı bildirimleri ve uyar-kaldır prosedürü (DMCA / Takedown)</h2>
         <p>
-          Hizmet telif haklarına saygı duyar ve herhangi bir içeriği sunucularında barındırmaz. Ancak
-          Hizmet aracılığıyla erişilen bir bağlantının telif haklarınızı ihlal ettiğini
-          düşünüyorsanız, <a href="mailto:your-email@example.com">your-email@example.com</a> adresine bildirimde
-          bulunabilirsiniz. Bildirilen URL'ler veya içerik kalıpları 24-48 saat içinde incelenerek arayüz üzerinden erişime engellenir.
+          Hizmet fikri mülkiyet ve telif haklarına azami saygı göstermektedir. Hizmet üzerinde hiçbir dosya depolanmamasına rağmen,
+          Hizmetin arayüzü veya iletim motoru aracılığıyla telif hakkı sahibi olduğunuz bir içeriğe erişildiğini düşünüyorsanız,
+          aşağıdaki iletişim adresi üzerinden bildirimde bulunabilirsiniz:
+        </p>
+        <p>
+          <strong>İletişim / Bildirim E-postası:</strong> <a href="mailto:contact@dixtuel.tr">contact@dixtuel.tr</a>
+        </p>
+        <p>
+          Bildiriminizde; (a) hak sahibi olduğunuzu gösteren yetki belgesi/beyan, (b) ihlale konu edilen özgün eserin tanımı ve (c) engellenmesi
+          talep edilen kaynak URL bağlantısı yer almalıdır. Haklı ve geçerli bildirimler incelenerek, ilgili bağlantılar veya URL desenleri
+          en geç 24 ila 48 saat içerisinde Hizmet arayüzümüz ve çözümleyicimiz üzerinden teknik olarak tamamen erişime engellenir.
         </p>
 
-        <h2>6. Garanti reddi (As-Is)</h2>
+        <h2>6. Garanti reddi ve hizmet sürekliliği (As-Is)</h2>
         <p>
-          Hizmet "olduğu gibi" ve "mevcut olduğu şekilde" sunulur. Kesintisiz, hatasız
-          çalışacağına veya belirli bir platformdan her zaman içerik çekebileceğine dair bir
-          garanti verilmez. Üçüncü taraf platformlardaki API, arayüz veya ağ değişiklikleri Hizmetin işlevselliğini
-          etkileyebilir veya geçici kesintilere yol açabilir.
+          Hizmet "olduğu gibi" (as-is) ve "mevcut olduğu şekilde" sunulmaktadır. Hizmetin kesintisiz, sıfır gecikmeli, güvenli veya hatasız
+          işleyeceği; her sosyal medya platformunun her an destekleneceği yönünde zımni veya sarih hiçbir garanti verilmemektedir.
+          Üçüncü taraf kaynak servislerin aldığı teknik önlemler, algoritma değişiklikleri veya erişim kısıtlamaları sebebiyle indirme
+          işlemlerinde gecikmeler, kalite farklılıkları veya geçici servis dışı kalma durumları yaşanabilir.
         </p>
 
         <h2>7. Sorumluluğun sınırlandırılması</h2>
         <p>
-          Hizmet sağlayıcı, Hizmetin kullanımından doğabilecek doğrudan veya dolaylı zararlardan
-          (veri kaybı, telif hakkı ihlali iddiaları, üçüncü taraf platform kısıtlamaları dahil
-          ancak bunlarla sınırlı olmamak üzere) sorumlu tutulamaz.
+          Yürürlükteki mevzuatın izin verdiği azami ölçüde; <strong>dixtuel</strong> ve Hizmetin geliştiricileri, Hizmetin kullanımından veya
+          kullanılamamasından kaynaklanan kar kaybı, veri kaybı, üçüncü taraf platform kısıtlamaları veya dolaylı/arızi hiçbir zarardan
+          sorumlu tutulamaz.
         </p>
 
-        <h2>8. Hizmetin değiştirilmesi ve sonlandırılması</h2>
+        <h2>8. Reklamlar ve üçüncü taraf harici servisler</h2>
         <p>
-          Hizmet, önceden bildirim yapılmaksızın geçici veya kalıcı olarak durdurulabilir,
-          değiştirilebilir veya belirli kullanıcılara/isteklere kapatılabilir.
+          Hizmetin sunucu, bant genişliği ve bakım maliyetlerinin karşılanması ve kullanıcıya ücretsiz sunulabilmesi amacıyla sayfada
+          <strong>Google AdSense</strong> gibi üçüncü taraf reklam ağları aracılığıyla reklamlar yer alabilir. Reklam içeriklerinden
+          ilgili reklamverenler ve reklam ağları sorumludur; ayrıntılı bilgi için <a href="/privacy.html">Gizlilik Politikası</a>'nı inceleyebilirsiniz.
         </p>
 
-        <h2>9. Reklamlar</h2>
+        <h2>9. Uygulanacak hukuk ve uyuşmazlıkların çözümü</h2>
         <p>
-          Hizmetin ücretsiz kalabilmesi ve devamlılığının sağlanabilmesi için sayfada
-          <strong>Google AdSense</strong> aracılığıyla üçüncü taraf reklamlar gösterilir.
-          Reklam içeriğinden ilgili reklam ağı ve reklamveren sorumludur; Hizmet reklam
-          içeriğini seçmez veya onaylamaz. Reklamlarla ilgili çerez ve veri işleme
-          ayrıntıları için <a href="/privacy.html">Gizlilik Politikası</a>'na bakınız.
+          Bu Kullanım Şartları, Türkiye Cumhuriyeti kanunlarına tabidir. Şartların uygulanmasından doğabilecek uyuşmazlıklarda
+          İstanbul (Çağlayan) Mahkemeleri ve İcra Daireleri münhasır yetkilidir.
         </p>
 
-        <h2>10. Uygulanacak hukuk</h2>
+        <h2>10. Şartlarda değişiklik</h2>
         <p>
-          Bu Şartlar, ilgili yerel ve uluslararası yasalara tabidir.
-        </p>
-
-        <h2>11. Değişiklikler</h2>
-        <p>
-          Bu Şartlar zaman zaman güncellenebilir. Güncel sürüm her zaman bu sayfada yer alır.
+          Hizmet koşulları, mevzuat güncellemeleri veya sistemsel geliştirmeler doğrultusunda önceden haber verilmeksizin güncellenebilir.
+          Değişiklikler bu sayfada yayımlandığı andan itibaren yürürlüğe girer.
         </p>
       </section>
     </main>
 
     <footer class="app-footer">
-      <span class="credit">Açık kaynak medya indirme aracı</span>
+      <span class="credit">made by <a class="maker" href="https://dixtuel.tr/" target="_blank" rel="noopener">dixtuel</a></span>
       <nav class="footer-links">
         <a href="/privacy.html">Gizlilik Politikası</a>
         <span class="sep">·</span>

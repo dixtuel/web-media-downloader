@@ -17,6 +17,7 @@ from urllib.parse import quote
 import httpx
 import yt_dlp
 from flask import Flask, Response, jsonify, request
+from reddit import resolve_reddit_media
 
 app = Flask(__name__)
 
@@ -294,6 +295,15 @@ def analyze_video():
     if not url or not url.startswith(("http://", "https://")):
         return jsonify({"status": "error", "error": {"code": "invalid_url", "message": "Geçerli bir medya URL'si gerekli"}}), 400
 
+    if "reddit.com" in url or "redd.it" in url:
+        try:
+            reddit_res = resolve_reddit_media(url)
+            if reddit_res.get("status") == "ok":
+                return jsonify(reddit_res)
+            return jsonify(reddit_res), 400
+        except Exception as exc:
+            return jsonify({"status": "error", "error": {"code": "reddit_failed", "message": f"Reddit çözümlenemedi: {exc}"}}), 502
+
     try:
         raw_info = run_extract(url, fmt=None)
     except Exception as exc:
@@ -395,6 +405,66 @@ def extract():
     codec = (data.get("youtubeVideoCodec") or data.get("vCodec") or "h264").strip()
     audio_format = (data.get("audioFormat") or data.get("aFormat") or "mp3").strip()
     audio_bitrate = (data.get("audioBitrate") or "128").strip()
+
+    if "reddit.com" in url or "redd.it" in url:
+        try:
+            reddit_res = resolve_reddit_media(url)
+            if reddit_res.get("status") == "ok":
+                raw_title = (reddit_res.get("title") or "reddit_media").strip()
+                safe_title = re.sub(r'[^\w\s\.-]', '_', raw_title)
+                
+                if reddit_res.get("is_photo"):
+                    direct_img = reddit_res.get("direct_url")
+                    ext = direct_img.split(".")[-1].lower() if "." in direct_img else "jpg"
+                    return jsonify({
+                        "status": "redirect",
+                        "url": direct_img,
+                        "filename": f"{safe_title}.{ext}",
+                        "adapter": False
+                    })
+                
+                if download_mode == "audio":
+                    a_url = reddit_res.get("audio_url")
+                    if not a_url:
+                        return jsonify({"status": "error", "error": {"code": "no_audio", "message": "Bu Reddit videosunda ses bulunmuyor"}}), 400
+                    remux_path = (
+                        f"/youtube-remux?audio={quote(a_url, safe='')}&mode=audio"
+                        f"&format=mp3&bitrate={audio_bitrate}&filename={quote(f'{safe_title}.mp3', safe='')}"
+                    )
+                    return jsonify({
+                        "status": "redirect",
+                        "url": remux_path,
+                        "filename": f"{safe_title}.mp3",
+                        "adapter": ADAPTER_ACTIVE
+                    })
+
+                v_qualities = reddit_res.get("qualities", [])
+                chosen_v = None
+                if video_quality and video_quality != "max":
+                    for q in v_qualities:
+                        if str(q.get("id")) == str(video_quality) or str(q.get("height")) == str(video_quality):
+                            chosen_v = q.get("video_url")
+                            break
+                if not chosen_v and v_qualities:
+                    chosen_v = v_qualities[0].get("video_url")
+
+                a_url = reddit_res.get("audio_url")
+                if a_url and download_mode != "mute":
+                    remux_path = (
+                        f"/youtube-remux?video={quote(chosen_v, safe='')}"
+                        f"&audio={quote(a_url, safe='')}"
+                        f"&filename={quote(f'{safe_title}.mp4', safe='')}"
+                    )
+                else:
+                    remux_path = (
+                        f"/youtube-remux?video={quote(chosen_v, safe='')}"
+                        f"&mode=mute"
+                        f"&filename={quote(f'{safe_title}.mp4', safe='')}"
+                    )
+                return jsonify({"status": "redirect", "url": remux_path, "filename": f"{safe_title}.mp4", "adapter": ADAPTER_ACTIVE})
+            return jsonify(reddit_res), 400
+        except Exception as exc:
+            return jsonify({"status": "error", "error": {"code": "reddit_extract_failed", "message": f"Reddit indirilemedi: {exc}"}}), 502
 
     fmt = build_format_selector(download_mode, video_quality, codec, audio_format)
 

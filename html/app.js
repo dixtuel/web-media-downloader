@@ -283,6 +283,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (isAudioOnly) {
         activeTab = 'audio';
+      } else if (currentMedia.is_photo) {
+        activeTab = 'photo';
+      } else if (currentMedia.is_gif) {
+        activeTab = 'gif';
       } else if (currentMedia.has_photos && (!currentMedia.qualities || currentMedia.qualities.length === 0)) {
         activeTab = 'photos';
       } else {
@@ -326,6 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
       /(?:soundcloud\.com)/i.test(media.rawUrl)
     );
 
+    const isPhoto = Boolean(media.is_photo);
+    const isGif = Boolean(media.is_gif);
+
     const hasPhotos = media.has_photos || (media.photos && media.photos.length > 0);
     const qualities = media.qualities || [];
 
@@ -342,6 +349,24 @@ document.addEventListener('DOMContentLoaded', () => {
           <button type="button" class="format-tab-btn active" data-tab="audio">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
             <span>Ses / Müzik (MP3)</span>
+          </button>
+        </div>
+      `;
+    } else if (isPhoto) {
+      tabsHtml = `
+        <div class="format-tabs" style="grid-template-columns: 1fr;">
+          <button type="button" class="format-tab-btn active" data-tab="photo">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <span>Orijinal Görsel</span>
+          </button>
+        </div>
+      `;
+    } else if (isGif) {
+      tabsHtml = `
+        <div class="format-tabs" style="grid-template-columns: 1fr;">
+          <button type="button" class="format-tab-btn active" data-tab="gif">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+            <span>Hareketli Görsel (GIF)</span>
           </button>
         </div>
       `;
@@ -371,7 +396,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let bodyHtml = '';
 
-    if (activeTab === 'video') {
+    if (activeTab === 'photo') {
+      const qLabel = qualities[0]?.label || 'Orijinal Görsel';
+      const dlUrl = media.direct_url || (qualities[0]?.direct_url) || media.thumbnail;
+      bodyHtml = `
+        <div class="format-panel">
+          <div class="control-group">
+            <label>Format</label>
+            <div style="font-size:0.92rem;color:var(--text);padding:8px 0;font-weight:600;">${escapeHtml(qLabel)}</div>
+          </div>
+          <a href="${escapeAttr(sanitizeMediaUrl(dlUrl))}" download="${escapeAttr(media.title || 'gorsel.jpg')}" id="btnDoDownload" class="btn-primary-download" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Görseli İndir</span>
+          </a>
+        </div>
+      `;
+    } else if (activeTab === 'gif') {
+      const dlUrl = media.direct_url || (qualities[0]?.direct_url) || media.thumbnail;
+      bodyHtml = `
+        <div class="format-panel">
+          <div class="control-group">
+            <label>Format</label>
+            <div style="font-size:0.92rem;color:var(--text);padding:8px 0;font-weight:600;">Hareketli Görsel (GIF)</div>
+          </div>
+          <a href="${escapeAttr(sanitizeMediaUrl(dlUrl))}" download="${escapeAttr(media.title || 'hareketli.gif')}" id="btnDoDownload" class="btn-primary-download" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>GIF'i İndir</span>
+          </a>
+        </div>
+      `;
+    } else if (activeTab === 'video') {
       const qualityOptions = qualities.map(q => `<option value="${escapeAttr(q.id)}" ${q.is_default ? 'selected' : ''}>${escapeHtml(q.label)}</option>`).join('');
       bodyHtml = `
         <div class="format-panel">
