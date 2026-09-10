@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wmd-cache-v2';
+const CACHE_NAME = 'wmd-cache-v3';
 const ASSETS = [
   '/',
   '/style.css',
@@ -29,21 +29,23 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API, streaming ve websocket çağrılarını asla cache'leme
+  // API, streaming, remux, tunnel ve dinamik çağrıları asla cache'leme
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/stream') ||
     url.pathname.startsWith('/youtube-') ||
+    url.pathname.startsWith('/tunnel') ||
+    url.pathname.startsWith('/download') ||
     url.pathname.startsWith('/health') ||
     event.request.method !== 'GET'
   ) {
     return;
   }
 
-  // Network-first for HTML, Stale-while-revalidate for static assets
+  // Network-First: Önce güncel sürümü ağdan al, ağ yoksa veya çevrimdışıysa cache'ten sun
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -51,9 +53,7 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => cachedResponse);
-
-      return cachedResponse || fetchPromise;
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
