@@ -115,16 +115,10 @@ def _attempt_order(host: str = "") -> list[str]:
     if any(h in host.lower() for h in ("pot-provider", "localhost", "127.0.0.1", "ytdlp", "cobalt")):
         return ["direct"]
 
-    # YouTube trafiği: VDS IP'si + Cookie ile doğrudan (0ms gecikmeyle) gitmeli;
-    # başarısız olursa (403/429/500) Deno/Lambda'ya fallback yapar.
-    if any(h in host.lower() for h in ("youtube.com", "youtu.be", "googlevideo.com", "ytimg.com")):
-        order = ["direct", "deno", "lambda"]
-        return [r for r in order if _route_available(r)]
-
-    # TikTok, Instagram, Twitter, Reddit, SoundCloud vb.: Datacenter bloklarını aşmak için
-    # önce relé'ler (Deno -> Lambda), başarısız olursa VDS IP (direct).
-    preferred = _preferred_route()
-    order = [preferred] + [r for r in _FALLBACK_ORDER if r != preferred]
+    # VDS IP'si doğrudan ve anında (0ms proxy gecikmesiyle) çalışır.
+    # Başarısız olursa (403 bot engeli, 429 rate-limit veya 5xx), otomatik olarak
+    # röleye (Lambda / Deno) fallback yapar.
+    order = ["direct", "lambda", "deno"]
     return [r for r in order if _route_available(r)]
 
 
@@ -151,7 +145,7 @@ def _do_direct(req) -> httpx.Response:
     headers.pop("host", None)
     headers.pop("proxy-connection", None)
     return httpx.request(
-        req.method, f"{_target_base(req)}{_clean_path(req.path)}", headers=headers, content=req.content, timeout=30.0, trust_env=False
+        req.method, f"{_target_base(req)}{_clean_path(req.path)}", headers=headers, content=req.content, timeout=12.0, trust_env=False
     )
 
 
@@ -165,7 +159,7 @@ def _do_relay(req, route: str) -> httpx.Response:
     headers["x-target-host"] = _target_base(req)
     headers["x-proxy-secret"] = relay_secret
     return httpx.request(
-        req.method, f"{relay_base}{_clean_path(req.path)}", headers=headers, content=req.content, timeout=30.0, trust_env=False
+        req.method, f"{relay_base}{_clean_path(req.path)}", headers=headers, content=req.content, timeout=12.0, trust_env=False
     )
 
 
