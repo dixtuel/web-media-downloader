@@ -22,6 +22,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4500);
   }
 
+  // XSS sanitizers for user/upstream strings
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function escapeAttr(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function sanitizeMediaUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    const trimmed = url.trim();
+    if (trimmed.startsWith('/') || /^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    return '';
+  }
+
   // Health check
   async function checkBackend() {
     try {
@@ -149,13 +179,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Multi-item sequential download
-  window.downloadAllItems = async function(items) {
+  async function downloadAllItems(items) {
+    if (!Array.isArray(items) || items.length === 0) return;
     showToast(`${items.length} adet medya indiriliyor...`, 'success');
     for (let i = 0; i < items.length; i++) {
       triggerDownload(items[i].url, items[i].filename || `media_${i + 1}.jpg`);
       await new Promise(r => setTimeout(r, 600));
     }
-  };
+  }
 
   // Helper: platform detector
   function getPlatformTag(url) {
@@ -208,12 +239,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.warn('Analyze error:', err);
       showToast(err.message || 'Analiz sırasında hata oluştu', 'error');
-      // Fallback single card with error message
+      // Fallback single card with error message (XSS safe)
       resultContainer.innerHTML = `
         <div class="result-card-single">
           <div class="result-info">
-            <span class="result-filename">${rawUrl}</span>
-            <span class="result-tag" style="color: var(--bad);">⚠ ${err.message || 'İçerik çözümlenemedi'}</span>
+            <span class="result-filename">${escapeHtml(rawUrl)}</span>
+            <span class="result-tag" style="color: var(--bad);">⚠ ${escapeHtml(err.message || 'İçerik çözümlenemedi')}</span>
           </div>
         </div>
       `;
@@ -224,13 +255,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Render the Analyzed Interactive Media Card
+  // Render the Analyzed Interactive Media Card (XSS Protected)
   function renderMediaCard(media) {
-    const platform = getPlatformTag(media.rawUrl);
-    const title = media.title || 'Medya Dosyası';
-    const author = media.uploader || '';
-    const duration = media.duration_str || '';
-    const thumb = media.thumbnail || '/favicon.svg';
+    const rawPlatform = getPlatformTag(media.rawUrl);
+    const platform = escapeHtml(rawPlatform);
+    const title = escapeHtml(media.title || 'Medya Dosyası');
+    const author = escapeHtml(media.uploader || '');
+    const duration = escapeHtml(media.duration_str || '');
+    const rawThumb = sanitizeMediaUrl(media.thumbnail) || '/favicon.svg';
+    const thumb = escapeAttr(rawThumb);
 
     const hasPhotos = media.has_photos || (media.photos && media.photos.length > 0);
     const qualities = media.qualities || [
@@ -271,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let bodyHtml = '';
 
     if (activeTab === 'video') {
-      const qualityOptions = qualities.map(q => `<option value="${q.id}" ${q.is_default ? 'selected' : ''}>${q.label}</option>`).join('');
+      const qualityOptions = qualities.map(q => `<option value="${escapeAttr(q.id)}" ${q.is_default ? 'selected' : ''}>${escapeHtml(q.label)}</option>`).join('');
       bodyHtml = `
         <div class="format-panel">
           <div class="control-row">
@@ -297,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     } else if (activeTab === 'audio') {
-      const bitrateOptions = bitrates.map(b => `<option value="${b.id}" ${b.is_default ? 'selected' : ''}>${b.label}</option>`).join('');
+      const bitrateOptions = bitrates.map(b => `<option value="${escapeAttr(b.id)}" ${b.is_default ? 'selected' : ''}>${escapeHtml(b.label)}</option>`).join('');
       bodyHtml = `
         <div class="format-panel">
           <div class="control-row">
@@ -324,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     } else if (activeTab === 'mute') {
-      const qualityOptions = qualities.map(q => `<option value="${q.id}" ${q.is_default ? 'selected' : ''}>${q.label}</option>`).join('');
+      const qualityOptions = qualities.map(q => `<option value="${escapeAttr(q.id)}" ${q.is_default ? 'selected' : ''}>${escapeHtml(q.label)}</option>`).join('');
       bodyHtml = `
         <div class="format-panel">
           <div class="control-group">
@@ -340,16 +373,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     } else if (activeTab === 'photos' && hasPhotos) {
-      window._lastPickerItems = media.photos;
       const itemsHtml = media.photos.map((item, idx) => {
         const itemFilename = item.filename || `photo_${idx + 1}.jpg`;
-        const itemDownloadUrl = buildDownloadUrl(item.url, itemFilename);
+        const rawItemUrl = sanitizeMediaUrl(item.url);
+        const itemDownloadUrl = buildDownloadUrl(rawItemUrl, itemFilename);
+        const rawThumbUrl = sanitizeMediaUrl(item.thumb || item.url);
         return `
           <div class="picker-item">
             <span class="picker-badge">Foto #${idx + 1}</span>
-            <img src="${item.thumb || item.url}" alt="Fotoğraf ${idx + 1}" loading="lazy" />
+            <img src="${escapeAttr(rawThumbUrl)}" alt="Fotoğraf ${idx + 1}" loading="lazy" />
             <div class="picker-item-action">
-              <a href="${itemDownloadUrl}" class="btn-picker-download" download="${itemFilename}">
+              <a href="${escapeAttr(itemDownloadUrl)}" class="btn-picker-download" download="${escapeAttr(itemFilename)}">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 <span>İndir</span>
               </a>
@@ -362,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="format-panel">
           <div class="gallery-header">
             <span class="gallery-title">Fotoğraf Albümü (${media.photos.length} Öğe)</span>
-            <button type="button" class="btn-download-all" onclick="downloadAllItems(window._lastPickerItems)">
+            <button type="button" class="btn-download-all" id="btnDownloadAllPicker">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               <span>Tümünü İndir</span>
             </button>
@@ -391,6 +425,12 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     resultContainer.style.display = 'block';
+
+    // Bind gallery download all button cleanly without window scope
+    const downloadAllBtn = document.getElementById('btnDownloadAllPicker');
+    if (downloadAllBtn && media.photos) {
+      downloadAllBtn.addEventListener('click', () => downloadAllItems(media.photos));
+    }
 
     // Bind tab clicks
     resultContainer.querySelectorAll('.format-tab-btn').forEach(btn => {

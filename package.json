@@ -1,0 +1,23 @@
+{
+  "name": "cobalt-web",
+  "version": "1.0.0",
+  "description": "Standalone web interface for cobalt and ytdlp-service",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "cobalt",
+    "downloader",
+    "media",
+    "ytdlp"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "undici": "^6.21.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

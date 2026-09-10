@@ -1,627 +1,91 @@
 import http from 'node:http';
-import fs from 'node:fs';
-import path from 'node:path';
-import { Readable } from 'node:stream';
-import { fileURLToPath } from 'node:url';
-import { fetch as undiciFetch, ProxyAgent } from 'undici';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PUBLIC_DIR = path.join(__dirname, 'html');
-const COBALT_API = process.env.COBALT_API || 'http://cobalt:9000';
-const YTDLP_API = process.env.YTDLP_API || 'http://ytdlp-service:5000';
-const PORT = process.env.PORT || 80;
-
-// Paylaşımlı egress adaptörü (ytdlp-service/adapter.py, mitmproxy) — yalnız
-// dışa (tikwm.com, TikTok CDN) giden istekler için kullanılır. COBALT_API/
-// YTDLP_API gibi iç ağ çağrıları asla buradan geçmez (gereksiz, adaptör
-// yalnız gerçekten dış dünyaya çıkan trafik için var). Adaptörün TLS'i kendi
-// CA'sıyla yerel sonlandırması (bağlantı Docker iç ağından hiç çıkmaz)
-// NODE_EXTRA_CA_CERTS ile güvenilir kılınır (docker-compose.yml), toptan
-// doğrulama kapatılmaz.
-const EGRESS_ADAPTER = (process.env.EGRESS_ADAPTER || '').trim();
-const egressAgent = EGRESS_ADAPTER ? new ProxyAgent(EGRESS_ADAPTER) : null;
-function egressFetch(url, opts = {}) {
-  return egressAgent ? undiciFetch(url, { ...opts, dispatcher: egressAgent }) : fetch(url, opts);
-}
-
-const ADSENSE_CLIENT_ID = (process.env.ADSENSE_CLIENT_ID || '').trim();
-const ADSENSE_SLOTS = {
-  content: (process.env.ADSENSE_SLOT_CONTENT || '').trim(),
-  railLeft: (process.env.ADSENSE_SLOT_RAIL_LEFT || '').trim(),
-  railRight: (process.env.ADSENSE_SLOT_RAIL_RIGHT || '').trim()
-};
-
-const MIME_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'application/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.ico': 'image/x-icon',
-  '.svg': 'image/svg+xml',
-  '.txt': 'text/plain; charset=utf-8',
-  '.xml': 'application/xml; charset=utf-8'
-};
+import { PORT } from './src/config.js';
+import { readBody, sendJson, getClientIp } from './src/utils/http.js';
+import { checkCobaltHealth, postCobalt, handleCobaltTunnel } from './src/services/cobalt.js';
+import { proxyTikTokRaw } from './src/services/tiktok.js';
+import { extractYouTube, handleYouTubeRemux } from './src/services/ytdlp.js';
+import { handleAdConfig } from './src/routes/adConfig.js';
+import { handleAnalyze } from './src/routes/analyze.js';
+import { handleDownloadStream } from './src/routes/download.js';
+import { handleStatic } from './src/routes/static.js';
 
 const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = parsedUrl.pathname;
 
-  // 0. AdSense config — istemci ADSENSE_CLIENT_ID / ADSENSE_SLOT_* env'lerine göre
-  // reklamları dinamik doldurur; boş bırakılan slot'lar placeholder olarak kalır.
+  // 1. AdSense yapılandırması
   if (pathname === '/ad-config.json') {
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
-    return res.end(JSON.stringify({
-      clientId: ADSENSE_CLIENT_ID || null,
-      slots: {
-        content: ADSENSE_SLOTS.content || null,
-        railLeft: ADSENSE_SLOTS.railLeft || null,
-        railRight: ADSENSE_SLOTS.railRight || null
-      }
-    }));
+    return handleAdConfig(req, res);
   }
 
-  // 1. Health check / status
+  // 2. Health check / status
   if (pathname === '/api/' || pathname === '/api') {
     try {
-      const apiRes = await fetch(`${COBALT_API}/`);
-      const data = await apiRes.json();
-      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-      return res.end(JSON.stringify(data));
-    } catch (err) {
-      res.writeHead(502, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'Cobalt backend offline' }));
+      const data = await checkCobaltHealth();
+      return sendJson(res, 200, data);
+    } catch {
+      return sendJson(res, 502, { error: 'Cobalt backend offline' });
     }
   }
 
-  // 2. TikTok API direct resolver proxy
+  // 3. TikTok API doğrudan proxy
   if (pathname === '/tiktok-api/' || pathname === '/tiktok-api') {
     if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => body += chunk);
-      req.on('end', async () => {
-        try {
-          const tikRes = await egressFetch('https://www.tikwm.com/api/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-            },
-            body: body
-          });
-          const data = await tikRes.json();
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-          return res.end(JSON.stringify(data));
-        } catch (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ code: -1, msg: err.message }));
-        }
-      });
-      return;
+      try {
+        const body = await readBody(req);
+        const data = await proxyTikTokRaw(body);
+        return sendJson(res, 200, data);
+      } catch (err) {
+        return sendJson(res, 500, { code: -1, msg: err.message });
+      }
     }
   }
 
-  // 2b. Evrensel URL Analiz ve Format Sorgulama (YouTube, TikTok, Instagram, Twitter, Reddit vb.)
+  // 4. Evrensel URL Analiz ve Format Sorgulama
   if (pathname === '/api/analyze' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body || '{}');
-        const url = (payload.url || '').trim();
-        const clientIp = req.headers['cf-connecting-ip'] || req.socket.remoteAddress || '';
-
-        if (!url) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ status: 'error', message: 'URL gerekli' }));
-        }
-
-        // YouTube Analizi
-        if (/^https?:\/\/([\w-]+\.)?(youtube\.com|youtu\.be|music\.youtube\.com)\//i.test(url)) {
-          const ytRes = await fetch(`${YTDLP_API}/analyze`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'X-Forwarded-For': clientIp
-            },
-            body: JSON.stringify({ url }),
-            signal: AbortSignal.timeout(35000)
-          });
-          const data = await ytRes.json();
-          res.writeHead(ytRes.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-          return res.end(JSON.stringify(data));
-        }
-
-        // TikTok Analizi
-        if (/^https?:\/\/([\w-]+\.)?(tiktok\.com)\//i.test(url)) {
-          const formData = new URLSearchParams();
-          formData.append('url', url);
-          formData.append('hd', '1');
-
-          const tikRes = await egressFetch('https://www.tikwm.com/api/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-            },
-            body: formData.toString()
-          });
-          const tData = await tikRes.json();
-          if (tData.code === 0 && tData.data) {
-            const d = tData.data;
-            const author = d.author?.unique_id || 'tiktok_user';
-            const title = d.title || `TikTok Video by @${author}`;
-            const isPhotoAlbum = d.images && Array.isArray(d.images) && d.images.length > 0;
-            const durationSec = d.duration || 0;
-            const mins = Math.floor(durationSec / 60);
-            const secs = durationSec % 60;
-            const durationStr = durationSec > 0 ? `${mins}:${secs < 10 ? '0' : ''}${secs}` : '';
-
-            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-            return res.end(JSON.stringify({
-              status: 'ok',
-              provider: 'tiktok',
-              title: title,
-              thumbnail: d.cover || d.origin_cover || '',
-              duration: durationSec,
-              duration_str: durationStr,
-              uploader: `@${author}`,
-              has_photos: isPhotoAlbum,
-              photos: isPhotoAlbum ? d.images.map((img, idx) => ({ url: img, filename: `tiktok_${author}_photo_${idx+1}.jpg` })) : [],
-              qualities: [
-                { id: 'hd', label: 'HD MP4 (Filigransız En Yüksek)', is_default: true, direct_url: d.hdplay || d.play },
-                { id: 'sd', label: 'SD MP4 (Filigransız)', is_default: false, direct_url: d.play }
-              ],
-              audio_bitrates: [
-                { id: '320', label: 'Orijinal Ses (MP3)', is_default: true, direct_url: d.music }
-              ]
-            }));
-          }
-        }
-
-        // Generic / Cobalt Analizi (Instagram, Twitter, Reddit, SoundCloud vb.)
-        const cobRes = await fetch(`${COBALT_API}/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ url, downloadMode: 'auto', videoQuality: 'max' }),
-          signal: AbortSignal.timeout(30000)
-        });
-        const cData = await cobRes.json();
-
-        if (cData.status === 'picker' && Array.isArray(cData.picker)) {
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-          return res.end(JSON.stringify({
-            status: 'ok',
-            provider: 'picker',
-            title: 'Çoklu Medya / Galeri',
-            thumbnail: cData.picker[0]?.thumb || cData.picker[0]?.url || '',
-            has_photos: true,
-            photos: cData.picker.map((item, idx) => ({
-              url: item.url,
-              thumb: item.thumb || item.url,
-              filename: `media_${idx + 1}.${item.type === 'video' ? 'mp4' : 'jpg'}`,
-              type: item.type || 'photo'
-            })),
-            qualities: [],
-            audio_bitrates: []
-          }));
-        }
-
-        if (cData.status === 'redirect' || cData.status === 'tunnel') {
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-          return res.end(JSON.stringify({
-            status: 'ok',
-            provider: 'generic',
-            title: cData.filename || 'Medya Dosyası',
-            thumbnail: '',
-            direct_url: cData.url,
-            qualities: [
-              { id: 'max', label: 'Orijinal En Yüksek Kalite (MP4)', is_default: true, direct_url: cData.url }
-            ],
-            audio_bitrates: [
-              { id: '320', label: 'En İyi Ses (MP3)', is_default: true }
-            ]
-          }));
-        }
-
-        // Instagram Fallback: cobalt'ın mobil API'si (i.instagram.com) IG
-        // tarafından reddedilip picker/redirect/tunnel dönmediğinde devreye
-        // girer — özellikle Reels'te embed HTML fallback'i yetersiz kalıyor.
-        // ytdlp-service, aynı veriyi web GraphQL uç noktasından (doc_id ile)
-        // çekmeyi dener (bkz. ytdlp-service/app.py instagram_graphql_extract).
-        if (/^https?:\/\/(?:www\.)?instagram\.com\//i.test(url)) {
-          try {
-            const igRes = await fetch(`${YTDLP_API}/instagram-extract`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': clientIp },
-              body: JSON.stringify({ url }),
-              signal: AbortSignal.timeout(25000)
-            });
-            const igData = await igRes.json();
-            if (igData.status === 'ok' && igData.url) {
-              res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-              return res.end(JSON.stringify({
-                status: 'ok',
-                provider: 'generic',
-                title: igData.title || igData.filename || 'Instagram Medyası',
-                thumbnail: igData.thumbnail || '',
-                direct_url: igData.url,
-                qualities: [
-                  { id: 'max', label: igData.media_type === 'photo' ? 'Orijinal Görsel' : 'Orijinal En Yüksek Kalite (MP4)', is_default: true, direct_url: igData.url }
-                ],
-                audio_bitrates: igData.media_type === 'photo' ? [] : [
-                  { id: '320', label: 'En İyi Ses (MP3)', is_default: true }
-                ]
-              }));
-            }
-          } catch (igErr) {
-            // sessizce genel hata yanıtına düş
-          }
-        }
-
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        return res.end(JSON.stringify({
-          status: 'ok',
-          provider: 'generic',
-          title: 'Sosyal Medya İçeriği',
-          qualities: [
-            { id: 'max', label: 'En Yüksek Kalite (Max)', is_default: true },
-            { id: '1080', label: '1080p Full HD', is_default: false },
-            { id: '720', label: '720p HD', is_default: false },
-            { id: '480', label: '480p SD', is_default: false }
-          ],
-          audio_bitrates: [
-            { id: '320', label: '320 kbps (En Yüksek)', is_default: true },
-            { id: '128', label: '128 kbps (Standart)', is_default: false }
-          ]
-        }));
-
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ status: 'error', message: err.message }));
-      }
-    });
-    return;
+    return handleAnalyze(req, res);
   }
 
-  // 3. Media Stream Proxy (Direct attachment for iOS Safari & browsers)
+  // 5. Medya Akış Proxy'si (iOS Safari, FDM, IDM vb. için doğrudan indirme)
   if (pathname === '/download' || pathname === '/media-stream') {
-    const targetUrl = parsedUrl.searchParams.get('url');
-    let targetFilename = (parsedUrl.searchParams.get('filename') || '').trim();
-
-    if (!targetUrl) {
-      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-      return res.end('Missing url parameter');
-    }
-
-    try {
-      const fetchHeaders = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': targetUrl.includes('tiktok') ? 'https://www.tiktok.com/' : (targetUrl.includes('instagram') ? 'https://www.instagram.com/' : 'https://google.com/')
-      };
-
-      // FDM/IDM ve tarayıcı duraklatma/devam ettirme (resuming) için Range başlıklarını ilet
-      if (req.headers['range']) fetchHeaders['Range'] = req.headers['range'];
-      if (req.headers['if-range']) fetchHeaders['If-Range'] = req.headers['if-range'];
-
-      let fetchMethod = req.method;
-      // Bazı CDN'ler (Google, TikTok) gövdesiz HEAD isteğinde Content-Length: 0 döner.
-      // HEAD isteğinde Range yoksa bytes=0-0 GET ile sorgulayıp Content-Range'den toplam boyutu çekeriz.
-      if (req.method === 'HEAD' && !fetchHeaders['Range']) {
-        fetchMethod = 'GET';
-        fetchHeaders['Range'] = 'bytes=0-0';
-      }
-
-      const mediaRes = await egressFetch(targetUrl, {
-        method: fetchMethod,
-        headers: fetchHeaders
-      });
-
-      if (!mediaRes.ok && mediaRes.status !== 206) {
-        res.writeHead(mediaRes.status, { 'Content-Type': 'text/plain; charset=utf-8' });
-        return res.end(`Failed to fetch media: ${mediaRes.statusText || mediaRes.status}`);
-      }
-
-      // Kapsamlı Cobalt & medya uzantı/MIME tablosu
-      const MEDIA_TYPES = {
-        // Video
-        '.mp4': 'video/mp4',
-        '.webm': 'video/webm',
-        '.mkv': 'video/x-matroska',
-        '.avi': 'video/x-msvideo',
-        '.mov': 'video/quicktime',
-        '.flv': 'video/x-flv',
-        '.wmv': 'video/x-ms-wmv',
-        '.m4v': 'video/x-m4v',
-        '.3gp': 'video/3gpp',
-        '.ts': 'video/mp2t',
-        // Ses
-        '.mp3': 'audio/mpeg',
-        '.m4a': 'audio/mp4',
-        '.ogg': 'audio/ogg',
-        '.oga': 'audio/ogg',
-        '.wav': 'audio/wav',
-        '.flac': 'audio/flac',
-        '.opus': 'audio/opus',
-        '.aac': 'audio/aac',
-        '.wma': 'audio/x-ms-wma',
-        '.mka': 'audio/x-matroska',
-        // Fotoğraf / Görsel
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.webp': 'image/webp',
-        '.gif': 'image/gif',
-        '.heic': 'image/heic',
-        '.heif': 'image/heif',
-        '.avif': 'image/avif',
-        '.bmp': 'image/bmp',
-        '.svg': 'image/svg+xml',
-        // Altyazı / Metin
-        '.vtt': 'text/vtt',
-        '.srt': 'application/x-subrip',
-        '.ttml': 'application/ttml+xml',
-        '.lrc': 'text/plain; charset=utf-8',
-        // Arşiv
-        '.zip': 'application/zip',
-        '.tar': 'application/x-tar',
-        '.gz': 'application/gzip'
-      };
-
-      // Uzantıyı belirle
-      let ext = path.extname(targetFilename).toLowerCase();
-      if (!ext) {
-        try {
-          const uPath = new URL(targetUrl).pathname;
-          ext = path.extname(uPath).toLowerCase();
-        } catch {}
-      }
-
-      // MIME türünden uzantı çıkar (upstream content-type varsa)
-      const upstreamContentType = (mediaRes.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-      if (!ext && upstreamContentType) {
-        for (const [e, m] of Object.entries(MEDIA_TYPES)) {
-          if (m.split(';')[0].trim() === upstreamContentType) {
-            ext = e;
-            break;
-          }
-        }
-      }
-
-      if (!ext) {
-        ext = '.mp4'; // Güvenli varsayılan
-      }
-
-      if (!targetFilename) {
-        targetFilename = `media_download${ext}`;
-      } else if (!targetFilename.toLowerCase().endsWith(ext)) {
-        targetFilename = `${targetFilename}${ext}`;
-      }
-
-      const contentType = MEDIA_TYPES[ext] || upstreamContentType || 'application/octet-stream';
-      const cleanAscii = targetFilename.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_');
-
-      const headers = {
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${cleanAscii}"; filename*=UTF-8''${encodeURIComponent(targetFilename)}`,
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Accept-Ranges': 'bytes'
-      };
-
-      let finalStatus = mediaRes.status;
-      let contentLength = mediaRes.headers.get('content-length');
-      let contentRange = mediaRes.headers.get('content-range');
-
-      // İstemci yalın HEAD attıysa ve upstream'den 206 bytes 0-0/TOTAL geldiyse bunu 200 + TOTAL uzunluk olarak ilet
-      if (req.method === 'HEAD' && !req.headers['range'] && contentRange) {
-        finalStatus = 200;
-        const total = contentRange.split('/')[1];
-        if (total && total !== '*') contentLength = total;
-        contentRange = null;
-      }
-
-      // Content-Length & Content-Range: indirme yöneticileri (FDM vb.) için kritik
-      if (contentLength) headers['Content-Length'] = contentLength;
-      if (contentRange) headers['Content-Range'] = contentRange;
-
-      res.writeHead(finalStatus, headers);
-
-      if (req.method !== 'HEAD' && mediaRes.body) {
-        Readable.fromWeb(mediaRes.body).pipe(res);
-      } else {
-        res.end();
-      }
-      return;
-    } catch (err) {
-      if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-      }
-      return res.end(`Stream error: ${err.message}`);
-    }
+    return handleDownloadStream(req, res, parsedUrl);
   }
 
-  // 4. Cobalt Tunnel Proxy
-  // Not: istemciyi kimliklendiren başlıklar (IP, cookie, auth vb.) kasıtlı olarak
-  // iletilmez — yalnızca stream'in çalışması için gereken başlıklar geçirilir.
+  // 6. Cobalt Tunnel Proxy
   if (pathname === '/tunnel' || pathname.startsWith('/tunnel/')) {
-    try {
-      const targetTunnelUrl = `${COBALT_API}${pathname}${parsedUrl.search}`;
-      const safeHeaders = {};
-      for (const key of ['range', 'if-range', 'accept', 'accept-encoding']) {
-        if (req.headers[key]) safeHeaders[key] = req.headers[key];
-      }
-      const tunnelRes = await fetch(targetTunnelUrl, {
-        method: req.method,
-        headers: safeHeaders
-      });
-
-      const forwardHeaders = {};
-      for (const [key, val] of tunnelRes.headers.entries()) {
-        if (key.toLowerCase() !== 'transfer-encoding') {
-          forwardHeaders[key] = val;
-        }
-      }
-      forwardHeaders['Access-Control-Allow-Origin'] = '*';
-      forwardHeaders['Accept-Ranges'] = 'bytes';
-
-      res.writeHead(tunnelRes.status, forwardHeaders);
-
-      if (req.method !== 'HEAD' && tunnelRes.body) {
-        Readable.fromWeb(tunnelRes.body).pipe(res);
-      } else {
-        res.end();
-      }
-      return;
-    } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-      return res.end(`Tunnel error: ${err.message}`);
-    }
+    return handleCobaltTunnel(req, res, pathname, parsedUrl.search);
   }
 
-  // 5b. YouTube extraction proxy (yt-dlp servisi — cobalt'ın YouTube desteği
-  // yetersiz kaldığı için ayrı bir servise yönlendirilir, bkz. CLAUDE.md).
-  // Gerçek istemci IP'si ytdlp-service'in kendi hız sınırlaması için iletilir
-  // (Cloudflare -> cf-connecting-ip; onun da olmadığı yerel testte soket IP'si).
+  // 7. YouTube extraction proxy (ytdlp-service)
   if (req.method === 'POST' && pathname === '/youtube-extract') {
-    const clientIp = req.headers['cf-connecting-ip'] || req.socket.remoteAddress || '';
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const ytRes = await fetch(`${YTDLP_API}/extract`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Forwarded-For': clientIp
-          },
-          body: body,
-          signal: AbortSignal.timeout(60000)
-        });
-        const data = await ytRes.json();
-        res.writeHead(ytRes.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        return res.end(JSON.stringify(data));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ status: 'error', error: { code: 'ytdlp.backend.error', message: err.message } }));
-      }
-    });
-    return;
+    try {
+      const clientIp = getClientIp(req);
+      const rawBody = await readBody(req);
+      const { status, data } = await extractYouTube(rawBody, clientIp);
+      return sendJson(res, status, data);
+    } catch (err) {
+      return sendJson(res, 500, { status: 'error', error: { code: 'ytdlp.backend.error', message: err.message } });
+    }
   }
 
-  // 5c. YouTube remux stream proxy — ffmpeg'in gerçek zamanlı birleştirdiği
-  // video+ses akışını istemciye stream eder (diskte hiçbir aşamada dosya yok).
+  // 8. YouTube remux stream proxy
   if (pathname === '/youtube-remux') {
-    const customFilename = (parsedUrl.searchParams.get('filename') || 'video.mp4').trim();
-    const ext = (parsedUrl.searchParams.get('ext') || 'mp4').toLowerCase();
-    const cleanAscii = customFilename.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_');
-    const contentType = ext === 'webm' ? 'video/webm' : 'video/mp4';
-
-    // FDM / İndirme Yöneticileri dosya boyutu/tipi sorguladığında (HEAD) anında yanıt ver
-    if (req.method === 'HEAD') {
-      res.writeHead(200, {
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${cleanAscii}"; filename*=UTF-8''${encodeURIComponent(customFilename)}`,
-        'Access-Control-Allow-Origin': '*',
-        'Accept-Ranges': 'bytes',
-        'Cache-Control': 'no-cache, no-store'
-      });
-      return res.end();
-    }
-
-    if (req.method === 'GET') {
-      try {
-        const clientIp = req.headers['cf-connecting-ip'] || req.socket.remoteAddress || '';
-        const targetUrl = `${YTDLP_API}/remux${parsedUrl.search}`;
-        const remuxRes = await fetch(targetUrl, {
-          method: 'GET',
-          headers: { 'X-Forwarded-For': clientIp }
-        });
-
-        if (!remuxRes.ok) {
-          res.writeHead(remuxRes.status, { 'Content-Type': 'text/plain; charset=utf-8' });
-          return res.end(await remuxRes.text());
-        }
-
-        const forwardHeaders = {
-          'Content-Type': contentType,
-          'Content-Disposition': `attachment; filename="${cleanAscii}"; filename*=UTF-8''${encodeURIComponent(customFilename)}`,
-          'Access-Control-Allow-Origin': '*',
-          'Accept-Ranges': 'bytes',
-          'Cache-Control': 'no-cache, no-store'
-        };
-
-        res.writeHead(200, forwardHeaders);
-        if (remuxRes.body) {
-          Readable.fromWeb(remuxRes.body).pipe(res);
-        } else {
-          res.end();
-        }
-        return;
-      } catch (err) {
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-        }
-        return res.end(`Remux error: ${err.message}`);
-      }
-    }
+    return handleYouTubeRemux(req, res, parsedUrl);
   }
 
-  // 5. Cobalt API POST proxy (for downloading YouTube, Twitter, Instagram, etc.)
+  // 9. Cobalt API POST proxy
   if (req.method === 'POST' && pathname === '/') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const cobaltRes = await fetch(`${COBALT_API}/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: body
-        });
-        const data = await cobaltRes.json();
-        res.writeHead(cobaltRes.status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        return res.end(JSON.stringify(data));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ status: 'error', error: { code: 'backend.error', message: err.message } }));
-      }
-    });
-    return;
-  }
-
-  // 6. Static File Serving
-  let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
-  const ext = path.extname(filePath).toLowerCase();
-
-  try {
-    const stat = await fs.promises.stat(filePath);
-    if (stat.isFile()) {
-      res.writeHead(200, {
-        'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
-        'Cache-Control': 'no-cache'
-      });
-      return fs.createReadStream(filePath).pipe(res);
+    try {
+      const rawBody = await readBody(req);
+      const { status, data } = await postCobalt(rawBody);
+      return sendJson(res, status, data);
+    } catch (err) {
+      return sendJson(res, 500, { status: 'error', error: { code: 'backend.error', message: err.message } });
     }
-  } catch {}
-
-  // Fallback to index.html
-  filePath = path.join(PUBLIC_DIR, 'index.html');
-  try {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    return fs.createReadStream(filePath).pipe(res);
-  } catch {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    return res.end('Not Found');
   }
+
+  // 10. Statik Dosya Sunumu
+  return handleStatic(req, res, pathname);
 });
 
 server.listen(PORT, '0.0.0.0', () => {

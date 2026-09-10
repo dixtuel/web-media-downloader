@@ -30,6 +30,7 @@ import itertools
 import os
 import threading
 import time
+import urllib.parse
 
 import httpx
 from mitmproxy import http
