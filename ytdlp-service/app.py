@@ -30,7 +30,7 @@ DENO_RELAY_URL = (os.environ.get("DENO_RELAY_URL") or "").strip()
 # --- Güvenlik: SSRF ve kaynak-tüketimi koruması -----------------------------
 YOUTUBE_URL_RE = re.compile(r"^https?://([\w-]+\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/", re.I)
 MEDIA_STREAM_URL_RE = re.compile(
-    r"^https?://([\w-]+\.)?(googlevideo\.com|youtube\.com|ytimg\.com|redd\.it|reddit\.com|twimg\.com|twitter\.com|x\.com|sndcdn\.com|soundcloud\.com|pinimg\.com|pinterest\.com|tiktokcdn\.com|tiktok\.com|cdninstagram\.com|fbcdn\.net)/",
+    r"^https?://([\w-]+\.)?(googlevideo\.com|youtube\.com|ytimg\.com|redd\.it|reddit\.com|twimg\.com|twitter\.com|x\.com|sndcdn\.com|soundcloud\.com|soundcloud\.cloud|pinimg\.com|pinterest\.com|tiktokcdn\.com|tiktok\.com|ibytedtos\.com|byteoversea\.com|cdninstagram\.com|fbcdn\.net)/",
     re.I
 )
 GOOGLEVIDEO_URL_RE = MEDIA_STREAM_URL_RE

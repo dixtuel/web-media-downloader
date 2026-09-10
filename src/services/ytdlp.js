@@ -71,9 +71,17 @@ export async function resolveInstagramFallback(url, clientIp) {
 }
 
 export async function handleYouTubeRemux(req, res, parsedUrl) {
-  const customFilename = (parsedUrl.searchParams.get('filename') || 'video.mp4').trim();
+  const customFilename = (parsedUrl.searchParams.get('filename') || 'media.mp4').trim();
   const ext = (parsedUrl.searchParams.get('ext') || 'mp4').toLowerCase();
-  const contentType = ext === 'webm' ? 'video/webm' : 'video/mp4';
+  const format = (parsedUrl.searchParams.get('format') || ext).toLowerCase();
+  
+  let contentType = 'video/mp4';
+  if (format === 'mp3') contentType = 'audio/mpeg';
+  else if (format === 'opus') contentType = 'audio/opus';
+  else if (format === 'wav') contentType = 'audio/wav';
+  else if (format === 'm4a') contentType = 'audio/mp4';
+  else if (ext === 'webm') contentType = 'video/webm';
+
   const disposition = sanitizeFilenameHeader(customFilename);
 
   if (req.method === 'HEAD') {
