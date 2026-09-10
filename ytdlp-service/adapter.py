@@ -112,13 +112,20 @@ def _route_available(route: str) -> bool:
 def _attempt_order(host: str = "") -> list[str]:
     # Yerel / iç Docker ağı servisleri (pot-provider, localhost vb.)
     # relé'lere gitmemeli — doğrudan yerel ağda çözülmeli.
-    if any(h in host.lower() for h in ("pot-provider", "localhost", "127.0.0.1", "ytdlp", "cobalt")):
+    h_lower = host.lower()
+    if any(h in h_lower for h in ("pot-provider", "localhost", "127.0.0.1", "ytdlp", "cobalt")):
         return ["direct"]
 
-    # VDS IP'si doğrudan ve anında (0ms proxy gecikmesiyle) çalışır.
-    # Başarısız olursa (403 bot engeli, 429 rate-limit veya 5xx), otomatik olarak
-    # röleye (Lambda / Deno) fallback yapar.
-    order = ["direct", "lambda", "deno"]
+    # SoundCloud ve YouTube trafiği: VDS IP'si doğrudan kabul eder ve 0ms gecikmeyle çalışır.
+    # Başarısız olursa (403/429/5xx) rölelere fallback yapar.
+    if any(h in h_lower for h in ("soundcloud.com", "sndcdn.com", "soundcloud.cloud", "youtube.com", "youtu.be", "googlevideo.com", "ytimg.com")):
+        order = ["direct", "deno", "lambda"]
+        return [r for r in order if _route_available(r)]
+
+    # Diğer tüm platformlar (TikTok, Instagram, Twitter/X, Reddit, Pinterest vb.):
+    # Datacenter blokajlarını aşmak için röle zinciri (Deno -> Lambda -> Direct).
+    preferred = _preferred_route()
+    order = [preferred] + [r for r in _FALLBACK_ORDER if r != preferred]
     return [r for r in order if _route_available(r)]
 
 
@@ -141,11 +148,9 @@ def _clean_path(p: str) -> str:
 
 
 def _do_direct(req) -> httpx.Response:
-    headers = dict(req.headers)
-    headers.pop("host", None)
-    headers.pop("proxy-connection", None)
+    headers = {k: v for k, v in req.headers.items() if k.lower() not in ("host", "proxy-connection", "connection")}
     return httpx.request(
-        req.method, f"{_target_base(req)}{_clean_path(req.path)}", headers=headers, content=req.content, timeout=12.0, trust_env=False
+        req.method, f"{_target_base(req)}{_clean_path(req.path)}", headers=headers, content=req.content, timeout=20.0, trust_env=False
     )
 
 
@@ -153,13 +158,11 @@ def _do_relay(req, route: str) -> httpx.Response:
     relay_base, relay_secret = (
         (DENO_RELAY_URL, DENO_RELAY_SECRET) if route == "deno" else (LAMBDA_RELAY_URL, LAMBDA_RELAY_SECRET)
     )
-    headers = dict(req.headers)
-    headers.pop("host", None)
-    headers.pop("proxy-connection", None)
+    headers = {k: v for k, v in req.headers.items() if k.lower() not in ("host", "proxy-connection", "connection")}
     headers["x-target-host"] = _target_base(req)
     headers["x-proxy-secret"] = relay_secret
     return httpx.request(
-        req.method, f"{relay_base}{_clean_path(req.path)}", headers=headers, content=req.content, timeout=12.0, trust_env=False
+        req.method, f"{relay_base}{_clean_path(req.path)}", headers=headers, content=req.content, timeout=20.0, trust_env=False
     )
 
 
