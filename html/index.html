@@ -2,11 +2,20 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Downloader — Ücretsiz YouTube, TikTok, Instagram MP4 &amp; MP3 İndirici</title>
   <meta name="description" content="YouTube, TikTok, Instagram, Twitter/X, Reddit ve SoundCloud'dan filigransız, hızlı ve ücretsiz video/ses indirme aracı. Kayıt gerekmez, veri saklanmaz.">
   <meta name="keywords" content="video downloader, mp3 downloader, mp4 downloader, youtube downloader, tiktok downloader, instagram downloader, sosyal medya indirici, medya indirici">
   <link rel="canonical" href="https://downloader.sely.tr/">
+
+  <!-- PWA & Mobile Web App -->
+  <meta name="theme-color" content="#09090b">
+  <meta name="color-scheme" content="dark">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Downloader">
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
@@ -15,6 +24,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
   <link rel="apple-touch-icon" href="/favicon-192.png">
 
+  <!-- Open Graph / Social -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Downloader">
   <meta property="og:title" content="Downloader — Sosyal Medya MP4 &amp; MP3 İndirici">
@@ -34,8 +44,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "@id": "https://downloader.sely.tr/#software",
-    "name": "Downloader",
+    "name": "Web Media Downloader",
     "url": "https://downloader.sely.tr/",
     "description": "YouTube, TikTok, Instagram, Twitter/X, Reddit ve SoundCloud'dan filigransız, hızlı ve ücretsiz video/ses indirme aracı.",
     "applicationCategory": "MultimediaApplication",
@@ -47,27 +56,24 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app-wrapper">
+    <!-- Header -->
     <header class="app-header">
       <div class="brand">
-        <svg class="brand-mark" width="44" height="44" viewBox="0 0 44 44" fill="none" aria-hidden="true">
-          <rect width="44" height="44" rx="10" fill="url(#logoGrad)"/>
-          <path d="M27.6 20.4a1.8 1.8 0 0 1 0 3.2l-8.8 4.9c-1.2.7-2.7-.2-2.7-1.6v-9.8c0-1.4 1.5-2.3 2.7-1.6z" fill="#fff" transform="rotate(90 22 22)"/>
-          <rect x="14" y="30" width="16" height="2.4" rx="1.2" fill="#fff" opacity="0.92"/>
-          <defs>
-            <linearGradient id="logoGrad" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#5a7bff"/>
-              <stop offset="1" stop-color="#eda36a"/>
-            </linearGradient>
-          </defs>
-        </svg>
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </div>
         <div class="brand-text">
           <h1>Downloader</h1>
-          <span class="tagline">sosyal medya mp4 / mp3 indirici</span>
+          <span class="tagline">açık kaynak medya indirici</span>
         </div>
       </div>
       <div class="header-status">
@@ -76,11 +82,23 @@
       </div>
     </header>
 
+    <!-- Anti-CLS Üst Reklam Alanı (Leaderboard / Responsive Banner) -->
+    <div class="ad-slot ad-slot-leaderboard" id="adSlotLeaderboard" aria-label="Reklam Alanı">
+      <span class="ad-label">Reklam</span>
+      <div class="ad-placeholder">728×90 / Responsive Banner</div>
+    </div>
+
+    <!-- Ana Akış Kartı -->
     <main class="main-content">
       <section class="downloader-card">
+        <div class="card-hero-copy">
+          <h2>Medyayı Anında İndirin</h2>
+          <p>YouTube, TikTok, Instagram, Twitter/X, Reddit veya SoundCloud linkini yapıştırın.</p>
+        </div>
+
         <form id="downloadForm" class="download-form" onsubmit="return false;">
           <div class="input-container">
-            <div class="input-icon">
+            <div class="input-icon" id="inputPlatformIcon" title="Medya Bağlantısı">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
@@ -89,13 +107,14 @@
             <input
               type="url"
               id="urlInput"
-              placeholder="YouTube, TikTok, Instagram, Twitter veya Reddit bağlantısını yapıştırın..."
+              placeholder="Bağlantıyı buraya yapıştırın..."
               required
               autocomplete="off"
               spellcheck="false"
+              inputmode="url"
             />
             <button type="button" id="pasteBtn" class="btn-paste" title="Panodan Yapıştır">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               </svg>
@@ -103,64 +122,85 @@
             </button>
             <button type="submit" id="submitBtn" class="btn-submit">
               <span class="btn-text">İndir</span>
-              <div class="spinner" id="btnSpinner"></div>
+              <div class="spinner" id="btnSpinner" aria-hidden="true"></div>
             </button>
           </div>
         </form>
 
-        <!-- Dynamic Result & Analyzed Media Container -->
+        <!-- Dynamic Result & Analyzed Media Container (Emil Kowalski spring-animated) -->
         <div id="resultContainer" class="result-container" style="display: none;"></div>
 
-        <!-- Platform tags -->
+        <!-- Platform tags / badges -->
         <div class="supported-services">
-          <span class="service-pill">YouTube</span>
-          <span class="service-pill">TikTok Video / Foto</span>
-          <span class="service-pill">Instagram Post / Reels / Galeri</span>
-          <span class="service-pill">Twitter / X Medya</span>
-          <span class="service-pill">Reddit</span>
-          <span class="service-pill">Pinterest</span>
-          <span class="service-pill">SoundCloud</span>
+          <span class="service-pill"><span class="pill-dot yt"></span>YouTube</span>
+          <span class="service-pill"><span class="pill-dot tt"></span>TikTok</span>
+          <span class="service-pill"><span class="pill-dot ig"></span>Instagram</span>
+          <span class="service-pill"><span class="pill-dot tw"></span>Twitter / X</span>
+          <span class="service-pill"><span class="pill-dot rd"></span>Reddit</span>
+          <span class="service-pill"><span class="pill-dot sc"></span>SoundCloud</span>
+          <span class="service-pill"><span class="pill-dot pin"></span>Pinterest</span>
         </div>
 
-        <!-- AdSense: /ad-config.json'da ADSENSE_CLIENT_ID + ADSENSE_SLOT_CONTENT tanımlıysa
-             app.js bu alanı otomatik doldurur; tanımlı değilse placeholder öylece kalır.
-             Yalnız dar ekranlarda görünür — geniş ekranda reklamlar kenar rayında (bkz. .ad-rail). -->
-        <div class="ad-slot ad-slot-inline" id="adSlotContent" data-ad-format="auto" data-ad-full-width="true">
+        <!-- Anti-CLS İçerik Reklam Alanı (Native / Medium Rectangle) -->
+        <div class="ad-slot ad-slot-inline" id="adSlotContent" data-ad-format="auto" data-ad-full-width="true" aria-label="Reklam Alanı">
           <span class="ad-label">Reklam</span>
-          <div class="ad-placeholder">Reklam alanı</div>
+          <div class="ad-placeholder">Reklam Alanı (Anti-CLS Rezerve)</div>
         </div>
       </section>
     </main>
 
+    <!-- Footer -->
     <footer class="app-footer">
-      <span class="credit">made by <a class="maker" href="https://dixtuel.tr/" target="_blank" rel="noopener">dixtuel</a></span>
+      <span class="credit">Açık Kaynak &amp; Ücretsiz Medya İndirici</span>
       <nav class="footer-links">
         <a href="/privacy.html">Gizlilik Politikası</a>
         <span class="sep">·</span>
         <a href="/terms.html">Kullanım Şartları</a>
         <span class="sep">·</span>
-        <a href="/accessibility.html">Erişilebilirlik Bildirimi</a>
+        <a href="/accessibility.html">Erişilebilirlik</a>
       </nav>
     </footer>
   </div>
 
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
-  <!-- Masaüstü kenar reklamları (skyscraper). Yalnız geniş ekranda gösterilir, içerik
-       sütunuyla çakışmaz. Doldurma app.js + /ad-config.json üzerinden env'e göre olur. -->
-  <div class="ad-rail ad-rail-left" aria-hidden="true">
+  <!-- Masaüstü Skyscraper Kenar Reklamları (1360px+) -->
+  <aside class="ad-rail ad-rail-left" aria-hidden="true">
     <div class="ad-slot ad-slot-rail" id="adSlotRailLeft" data-ad-width="160" data-ad-height="600">
       <span class="ad-label">Reklam</span>
-      <div class="ad-placeholder">160×600</div>
+      <div class="ad-placeholder">160×600 Skyscraper</div>
     </div>
-  </div>
-  <div class="ad-rail ad-rail-right" aria-hidden="true">
+  </aside>
+  <aside class="ad-rail ad-rail-right" aria-hidden="true">
     <div class="ad-slot ad-slot-rail" id="adSlotRailRight" data-ad-width="160" data-ad-height="600">
       <span class="ad-label">Reklam</span>
-      <div class="ad-placeholder">160×600</div>
+      <div class="ad-placeholder">160×600 Skyscraper</div>
+    </div>
+  </aside>
+
+  <!-- Cookie Banner -->
+  <div id="cookieBanner" class="cookie-banner" hidden>
+    <p class="cookie-banner-copy">
+      Reklam ve sitenin düzgün çalışması için çerez kullanıyoruz. Zorunlu olmayan çerezleri kabul edebilir ya da reddedebilirsiniz.
+      <a href="/privacy.html">Gizlilik Politikası</a>
+    </p>
+    <div class="cookie-banner-actions">
+      <button type="button" id="cookieRejectBtn" class="cookie-banner-reject">Reddet</button>
+      <button type="button" id="cookieAcceptBtn" class="cookie-banner-accept">Kabul Et</button>
     </div>
   </div>
 
   <script src="app.js"></script>
+  <script src="cookie-consent.js"></script>
+  <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+          console.debug('SW registration skipped:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
