@@ -319,11 +319,11 @@ def analyze_video():
 
     title = (raw_info.get("title") or f"{provider.capitalize()} Medyası").strip()
     thumbnail = raw_info.get("thumbnail") or ""
-    duration_sec = raw_info.get("duration") or 0
+    duration_sec = float(raw_info.get("duration") or 0)
     uploader = raw_info.get("uploader") or raw_info.get("channel") or ""
 
-    mins = duration_sec // 60
-    secs = duration_sec % 60
+    mins = int(duration_sec // 60)
+    secs = int(duration_sec % 60)
     duration_str = f"{mins}:{secs:02d}" if duration_sec > 0 else ""
 
     all_heights = [f.get("height") for f in raw_info.get("formats", []) if f.get("height") and f.get("height") >= 144]
@@ -342,26 +342,30 @@ def analyze_video():
     }
 
     qualities = []
-    max_h = unique_heights[0] if unique_heights else 1080
-    qualities.append({
-        "id": "max",
-        "label": f"En Yüksek ({max_h}p)",
-        "height": max_h,
-        "is_default": True
-    })
+    is_audio_only = (provider == "soundcloud") or (len(unique_heights) == 0)
 
-    for h in unique_heights:
-        lbl = LABEL_MAP.get(h, f"{h}p")
+    if not is_audio_only:
+        max_h = unique_heights[0] if unique_heights else 1080
         qualities.append({
-            "id": str(h),
-            "label": lbl,
-            "height": h,
-            "is_default": False
+            "id": "max",
+            "label": f"En Yüksek ({max_h}p)",
+            "height": max_h,
+            "is_default": True
         })
+
+        for h in unique_heights:
+            lbl = LABEL_MAP.get(h, f"{h}p")
+            qualities.append({
+                "id": str(h),
+                "label": lbl,
+                "height": h,
+                "is_default": False
+            })
 
     return jsonify({
         "status": "ok",
         "provider": provider,
+        "is_audio_only": is_audio_only,
         "title": title,
         "thumbnail": thumbnail,
         "duration": duration_sec,

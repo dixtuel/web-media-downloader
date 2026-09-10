@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (/(?:instagram\.com)/i.test(url)) return 'Instagram';
     if (/(?:twitter\.com|x\.com)/i.test(url)) return 'Twitter / X';
     if (/(?:reddit\.com)/i.test(url)) return 'Reddit';
-    if (/(?:soundcloud\.com)/i.test(url)) return 'SoundCloud';
+    if (/(?:soundcloud\.com|sndcdn\.com)/i.test(url)) return 'SoundCloud';
     if (/(?:pinterest\.com|pin\.it)/i.test(url)) return 'Pinterest';
     return 'Medya';
   }
@@ -273,7 +273,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       currentMedia = { ...data, rawUrl };
-      activeTab = (currentMedia.has_photos && (!currentMedia.qualities || currentMedia.qualities.length === 0)) ? 'photos' : 'video';
+      const isAudioOnly = Boolean(
+        currentMedia.is_audio_only ||
+        currentMedia.provider === 'soundcloud' ||
+        /(?:soundcloud\.com)/i.test(rawUrl) ||
+        (!currentMedia.has_photos && (!currentMedia.qualities || currentMedia.qualities.length === 0))
+      );
+      currentMedia.is_audio_only = isAudioOnly;
+
+      if (isAudioOnly) {
+        activeTab = 'audio';
+      } else if (currentMedia.has_photos && (!currentMedia.qualities || currentMedia.qualities.length === 0)) {
+        activeTab = 'photos';
+      } else {
+        activeTab = 'video';
+      }
 
       renderMediaCard(currentMedia);
       showToast('Medya hazır!', 'success');
@@ -306,13 +320,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawThumb = sanitizeMediaUrl(media.thumbnail) || '/favicon.svg';
     const thumb = escapeAttr(rawThumb);
 
+    const isAudioOnly = Boolean(
+      media.is_audio_only ||
+      media.provider === 'soundcloud' ||
+      /(?:soundcloud\.com)/i.test(media.rawUrl)
+    );
+
     const hasPhotos = media.has_photos || (media.photos && media.photos.length > 0);
-    const qualities = media.qualities || [
-      { id: 'max', label: 'En Yüksek Kalite (Max)', is_default: true },
-      { id: '1080', label: '1080p Full HD' },
-      { id: '720', label: '720p HD' },
-      { id: '480', label: '480p SD' }
-    ];
+    const qualities = media.qualities || [];
 
     const bitrates = media.audio_bitrates || [
       { id: '320', label: '320 kbps (En Yüksek)', is_default: true },
@@ -320,27 +335,39 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: '128', label: '128 kbps (Standart)' }
     ];
 
-    let tabsHtml = `
-      <div class="format-tabs">
-        <button type="button" class="format-tab-btn ${activeTab === 'video' ? 'active' : ''}" data-tab="video">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-          <span>Video (MP4)</span>
-        </button>
-        <button type="button" class="format-tab-btn ${activeTab === 'audio' ? 'active' : ''}" data-tab="audio">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-          <span>Ses (MP3)</span>
-        </button>
-        <button type="button" class="format-tab-btn ${activeTab === 'mute' ? 'active' : ''}" data-tab="mute">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
-          <span>Sessiz Video</span>
-        </button>
-        ${hasPhotos ? `
-        <button type="button" class="format-tab-btn ${activeTab === 'photos' ? 'active' : ''}" data-tab="photos">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-          <span>Galeri / Foto (${media.photos.length})</span>
-        </button>` : ''}
-      </div>
-    `;
+    let tabsHtml = '';
+    if (isAudioOnly) {
+      tabsHtml = `
+        <div class="format-tabs" style="grid-template-columns: 1fr;">
+          <button type="button" class="format-tab-btn active" data-tab="audio">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            <span>Ses / Müzik (MP3)</span>
+          </button>
+        </div>
+      `;
+    } else {
+      tabsHtml = `
+        <div class="format-tabs">
+          <button type="button" class="format-tab-btn ${activeTab === 'video' ? 'active' : ''}" data-tab="video">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+            <span>Video (MP4)</span>
+          </button>
+          <button type="button" class="format-tab-btn ${activeTab === 'audio' ? 'active' : ''}" data-tab="audio">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            <span>Ses (MP3)</span>
+          </button>
+          <button type="button" class="format-tab-btn ${activeTab === 'mute' ? 'active' : ''}" data-tab="mute">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+            <span>Sessiz Video</span>
+          </button>
+          ${hasPhotos ? `
+          <button type="button" class="format-tab-btn ${activeTab === 'photos' ? 'active' : ''}" data-tab="photos">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <span>Galeri / Foto (${media.photos.length})</span>
+          </button>` : ''}
+        </div>
+      `;
+    }
 
     let bodyHtml = '';
 
@@ -515,8 +542,11 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('İndirme hazırlanıyor...', '');
 
       // YouTube, Reddit, Twitter, SoundCloud, Pinterest veya yt-dlp üzerinden çözülen platformlar
-      const isYtdlpSupported = ['youtube', 'reddit', 'twitter', 'soundcloud', 'pinterest'].includes(currentMedia.provider) ||
-        /(?:youtube\.com|youtu\.be|music\.youtube\.com)/i.test(currentMedia.rawUrl);
+      const isYtdlpSupported = Boolean(
+        currentMedia.is_audio_only ||
+        ['youtube', 'reddit', 'twitter', 'soundcloud', 'pinterest'].includes(currentMedia.provider) ||
+        /(?:youtube\.com|youtu\.be|music\.youtube\.com|soundcloud\.com|on\.soundcloud\.com)/i.test(currentMedia.rawUrl)
+      );
 
       if (isYtdlpSupported) {
         const payload = {
